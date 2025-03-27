@@ -55,11 +55,6 @@ export default function WelcomeScreen() {
         </LinearGradient>
       </ThemedView>
       
-      <ScrollView 
-        style={styles.scrollView}
-        contentContainerStyle={styles.scrollContent}
-        showsVerticalScrollIndicator={false}
-      >
         <View style={styles.logoContainer}>
           <LinearGradient
             colors={isDark ? 
@@ -85,27 +80,8 @@ export default function WelcomeScreen() {
           </ThemedText>
         </View>
         
-        <View style={styles.features}>
-          <Feature 
-            title="Personalized Macros" 
-            description="Get custom macronutrient targets based on your body and goals"
-            color="#f97316"  // Orange from HomeScreen
-            icon="✓"
-          />
-          <Feature 
-            title="Scientific Approach" 
-            description="Calculations based on proven nutritional science"
-            color="#22c55e"  // Green from HomeScreen
-            icon="✓"
-          />
-          <Feature 
-            title="Goal Oriented" 
-            description="Whether you want to lose, maintain, or gain weight"
-            color="#3b82f6"  // Blue from HomeScreen
-            icon="✓"
-          />
-        </View>
-      </ScrollView>
+    
+    
       
       <View style={styles.footer}>
         <BlurView 

@@ -10,6 +10,7 @@ import { ProgressIndicator } from '@/components/ProgressIndicator';
 import { useRegistration } from '@/contexts/RegistrationContext';
 import { Colors } from '@/constants/Colors';
 import { useColorScheme } from '@/hooks/useColorScheme';
+import { calculateBMI, getBMICategory } from '@/utils/macroCalculator'; // Import BMI functions
 
 const REGISTRATION_STEPS = [
   'Welcome',
@@ -23,6 +24,34 @@ export default function ResultsScreen() {
   const { userData, macroResults, prevStep, resetRegistration } = useRegistration();
   const colorScheme = useColorScheme();
   const tintColor = Colors[colorScheme ?? 'light'].tint;
+  
+  // Calculate BMI
+  const bmi = calculateBMI(userData.height, userData.weight);
+  const bmiCategory = getBMICategory(bmi);
+  
+  // Get color based on BMI category
+  const getBmiColor = () => {
+    switch (bmiCategory) {
+      case 'Underweight':
+        return '#FFD166'; // Yellow
+      case 'Normal weight':
+        return '#4ECDC4'; // Green
+      case 'Overweight':
+        return '#FF9F1C'; // Orange
+      case 'Obese':
+        return '#FF6B6B'; // Red
+      default:
+        return '#4ECDC4';
+    }
+  };
+  
+  // Calculate position on BMI scale (between 15 and 40)
+  const getBmiPosition = () => {
+    const minBmi = 15;
+    const maxBmi = 40;
+    const clampedBmi = Math.min(Math.max(bmi, minBmi), maxBmi);
+    return ((clampedBmi - minBmi) / (maxBmi - minBmi)) * 100;
+  };
   
   const handleBack = () => {
     prevStep();
@@ -73,6 +102,8 @@ export default function ResultsScreen() {
         <ThemedText style={styles.description}>
           Based on your information, here are your recommended daily macronutrient targets.
         </ThemedText>
+        
+      
         
         <View style={styles.summaryCard}>
           <View style={styles.summaryHeader}>
@@ -133,6 +164,48 @@ export default function ResultsScreen() {
           </ThemedText>
           <ThemedText style={styles.infoText}>
             • Fats support hormone production and overall health
+          </ThemedText>
+        </View>
+
+          {/* BMI Card */}
+          <View style={styles.bmiCard}>
+          <ThemedText style={styles.bmiTitle}>Your Body Mass Index (BMI)</ThemedText>
+          
+          <View style={styles.bmiValueContainer}>
+            <ThemedText style={styles.bmiValue}>{bmi.toFixed(1)}</ThemedText>
+            <View style={[styles.bmiCategoryBadge, { backgroundColor: getBmiColor() }]}>
+              <ThemedText style={styles.bmiCategoryText}>{bmiCategory}</ThemedText>
+            </View>
+          </View>
+          
+          <View style={styles.bmiScaleContainer}>
+            <View style={styles.bmiScale}>
+              <View style={styles.bmiScaleSegment1} />
+              <View style={styles.bmiScaleSegment2} />
+              <View style={styles.bmiScaleSegment3} />
+              <View style={styles.bmiScaleSegment4} />
+            </View>
+            
+            <View style={[styles.bmiIndicator, { left: `${getBmiPosition()}%`, backgroundColor: getBmiColor() }]} />
+            
+            <View style={styles.bmiLabelsContainer}>
+              <ThemedText style={styles.bmiScaleLabel}>15</ThemedText>
+              <ThemedText style={styles.bmiScaleLabel}>18.5</ThemedText>
+              <ThemedText style={styles.bmiScaleLabel}>25</ThemedText>
+              <ThemedText style={styles.bmiScaleLabel}>30</ThemedText>
+              <ThemedText style={styles.bmiScaleLabel}>40</ThemedText>
+            </View>
+            
+            <View style={styles.bmiCategoryLabelsContainer}>
+              <ThemedText style={[styles.bmiCategoryLabel, { flex: 3.5 }]}>Underweight</ThemedText>
+              <ThemedText style={[styles.bmiCategoryLabel, { flex: 6.5 }]}>Normal</ThemedText>
+              <ThemedText style={[styles.bmiCategoryLabel, { flex: 5 }]}>Overweight</ThemedText>
+              <ThemedText style={[styles.bmiCategoryLabel, { flex: 10 }]}>Obese</ThemedText>
+            </View>
+          </View>
+          
+          <ThemedText style={styles.bmiDescription}>
+            BMI is a measure of body fat based on height and weight. It's one of several indicators to assess your overall health.
           </ThemedText>
         </View>
         
@@ -226,6 +299,110 @@ const styles = StyleSheet.create({
     marginBottom: 24,
     opacity: 0.8,
   },
+  // BMI Card Styles
+  bmiCard: {
+    borderRadius: 2,
+    padding: 24,
+    marginBottom: 28,
+    backgroundColor: 'rgba(0, 0, 0, 0.05)',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.1,
+    shadowRadius: 8,
+    elevation: 5,
+    overflow: 'visible',
+  },
+  bmiTitle: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    marginBottom: 16,
+  },
+  bmiValueContainer: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 24,
+    width: '100%',
+    overflow: 'visible',
+    paddingVertical: 8,
+  },
+  bmiValue: {
+    fontSize: 36,
+    fontWeight: 'bold',
+    flexShrink: 0,
+    minWidth: 70,
+    lineHeight: 44,
+    includeFontPadding: false,
+    textAlignVertical: 'center',
+  },
+  bmiCategoryBadge: {
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    borderRadius: 20,
+  },
+  bmiCategoryText: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#FFFFFF',
+  },
+  bmiScaleContainer: {
+    marginBottom: 20,
+    position: 'relative',
+  },
+  bmiScale: {
+    height: 12,
+    flexDirection: 'row',
+    borderRadius: 2,
+    overflow: 'hidden',
+    marginBottom: 12,
+  },
+  bmiScaleSegment1: {
+    flex: 3.5,
+    backgroundColor: '#FFD166', // Yellow for underweight
+  },
+  bmiScaleSegment2: {
+    flex: 6.5,
+    backgroundColor: '#4ECDC4', // Green for normal
+  },
+  bmiScaleSegment3: {
+    flex: 5,
+    backgroundColor: '#FF9F1C', // Orange for overweight
+  },
+  bmiScaleSegment4: {
+    flex: 10,
+    backgroundColor: '#FF6B6B', // Red for obese
+  },
+  bmiIndicator: {
+    width: 12,
+    height: 12,
+    borderRadius: 6,
+    position: 'absolute',
+    top: 0,
+    transform: [{ translateX: -6 }], // Center the indicator
+  },
+  bmiLabelsContainer: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    marginBottom: 4,
+  },
+  bmiScaleLabel: {
+    fontSize: 12,
+    opacity: 0.7,
+  },
+  bmiCategoryLabelsContainer: {
+    flexDirection: 'row',
+  },
+  bmiCategoryLabel: {
+    fontSize: 12,
+    opacity: 0.7,
+    textAlign: 'center',
+  },
+  bmiDescription: {
+    fontSize: 14,
+    opacity: 0.8,
+    marginTop: 8,
+  },
+  // Original Styles
   summaryCard: {
     borderRadius: 2,
     padding: 24,

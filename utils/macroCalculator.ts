@@ -2,7 +2,7 @@
  * Macro Calculator Utility
  * 
  * This utility provides functions to calculate macronutrient needs based on
- * user biometric data and activity level.
+ * user biometric data and activity level, as well as BMI calculation.
  */
 
 export type Gender = 'male' | 'female' | 'other';
@@ -30,6 +30,32 @@ export interface MacroResults {
   protein: number;     // in grams
   carbs: number;       // in grams
   fat: number;         // in grams
+}
+
+/**
+ * Calculate Body Mass Index (BMI)
+ * BMI = weight(kg) / height(m)²
+ */
+export function calculateBMI(height: number, weight: number): number {
+  // Convert height from cm to meters
+  const heightInMeters = height / 100;
+  // Calculate BMI (weight in kg / height in meters squared)
+  return Number((weight / (heightInMeters * heightInMeters)).toFixed(1));
+}
+
+/**
+ * Get BMI category based on calculated BMI value
+ */
+export function getBMICategory(bmi: number): string {
+  if (bmi < 18.5) {
+    return 'Underweight';
+  } else if (bmi >= 18.5 && bmi < 25) {
+    return 'Normal weight';
+  } else if (bmi >= 25 && bmi < 30) {
+    return 'Overweight';
+  } else {
+    return 'Obese';
+  }
 }
 
 /**

@@ -7,6 +7,7 @@ import * as poseDetection from '@tensorflow-models/pose-detection';
 import { cameraWithTensors } from '@tensorflow/tfjs-react-native';
 import { manipulateAsync } from 'expo-image-manipulator';
 import { Asset } from 'expo-asset';
+import { useRegistration } from '@/contexts/RegistrationContext';
 
 // TensorCamera is a Camera that also feeds the image data to TensorFlow.js
 const TensorCamera = cameraWithTensors(Camera);
@@ -15,6 +16,8 @@ const { width } = Dimensions.get('window');
 const height = width * 1.5; // Maintain aspect ratio
 
 const BodyPartDetector = () => {
+const { userData } = useRegistration();
+    
   const [hasPermission, setHasPermission] = useState(null);
   const [model, setModel] = useState(null);
   const [activeBodyPart, setActiveBodyPart] = useState('');
@@ -35,7 +38,7 @@ const BodyPartDetector = () => {
   const cameraRef = useRef(null);
   // Enhanced body part groups with upper/lower body categorization
   const bodyGroups = {
-    upperBody: ['head', 'shoulders', 'chest', 'arms', 'arms_right', 'abdomen'],
+    upperBody: [ 'shoulders', 'chest', 'arms', 'arms_right', 'abdomen'],
     lowerBody: ['hips', 'upper_legs_left', 'upper_legs_right', 'lower_legs_left', 'lower_legs_right']
   };
 
@@ -50,7 +53,7 @@ const BodyPartDetector = () => {
     { 
       id: 'shoulders', 
       name: 'Shoulders', 
-      x: 0.5, 
+      x: 0.7, 
       y: 0.15, 
       radius: 40, 
       color: '#4285F4', // Google blue
@@ -147,16 +150,7 @@ const BodyPartDetector = () => {
       description: 'Calves and shins, connects to feet',
       group: 'lowerBody'
     },
-    { 
-      id: 'head', 
-      name: 'Head', 
-      x: 0.5, 
-      y: 0.05, 
-      radius: 35, 
-      color: '#EA4335', // Google red
-      description: 'Contains brain, facial features, and sensory organs',
-      group: 'upperBody'
-    },
+    
   ];
   
   // Body part mapping for MoveNet model (used when we have real detection)
@@ -212,7 +206,7 @@ const BodyPartDetector = () => {
 
   // Initialize TensorFlow.js and load the pose detection model
   useEffect(() => {
-    (async () => {
+    const setup = async () => {
       try {
         // Initialize TensorFlow.js
         await tf.ready();
@@ -241,8 +235,10 @@ const BodyPartDetector = () => {
       } finally {
         setIsLoading(false);
       }
-    })();
-  }, []);
+    };
+    if(userData)
+        setup()
+  }, [userData]);
   
   // Request permissions
   useEffect(() => {
@@ -281,9 +277,10 @@ const BodyPartDetector = () => {
   const loadDefaultImage = async () => {
     try {
       // Use the correct path to your default image
-      const defaultImageUri = require('../../assets/images/male.jpeg');
+      //const defaultImageUri = userData.gender == "male" || userData.gender == "other" ?"../../assets/images/male.jpeg":"../../assets/images/female.jpeg" 
+      const defaultImageUri = userData.gender == "male" || userData.gender == "other" ? require("../../assets/images/male.jpeg"): require("../../assets/images/female.jpeg")
       setImageSource(defaultImageUri);
-      
+      console.log(userData)
       // If model is ready, try to analyze the image
       if (isModelReady) {
         // Use Asset to get local URI
@@ -671,7 +668,7 @@ const BodyPartDetector = () => {
       }
     }
   };
-  if (hasPermission === null || isLoading) {
+  if (hasPermission === null || isLoading || !userData?.gender) {
     return (
       <View style={styles.container}>
         <ActivityIndicator size="large" color="#4285F4" style={styles.loader} />
@@ -1098,7 +1095,7 @@ const BodyPartDetector = () => {
     overlayButtonsContainer: {
       position: 'absolute',
       left: 15,
-      bottom: 80,
+      top: 20,
       flexDirection: 'column',
       alignItems: 'flex-start',
       zIndex: 50,
