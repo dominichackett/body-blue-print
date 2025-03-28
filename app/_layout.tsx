@@ -7,8 +7,7 @@ import { useEffect } from 'react';
 import 'react-native-reanimated';
 
 import { useColorScheme } from '@/hooks/useColorScheme';
-import { RegistrationProvider } from '@/contexts/RegistrationContext';
-
+import { AuthProvider } from '@/providers/AuthProvider';
 // Prevent the splash screen from auto-hiding before asset loading is complete.
 SplashScreen.preventAutoHideAsync();
 
@@ -29,7 +28,7 @@ export default function RootLayout() {
   }
 
   return (
-    <RegistrationProvider>
+      
       <ThemeProvider value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>
         <Stack screenOptions={{ headerShown: false }}>
           <Stack.Screen name="registration" />
@@ -37,6 +36,7 @@ export default function RootLayout() {
         </Stack>
         <StatusBar style="auto" />
       </ThemeProvider>
-    </RegistrationProvider>
+    
+    
   );
 }

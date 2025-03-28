@@ -1,23 +1,20 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { View, Text, StyleSheet, Dimensions, TouchableOpacity, Image, SafeAreaView, ActivityIndicator, Animated } from 'react-native';
-import { Camera } from 'expo-camera';
+import { Camera, CameraView } from 'expo-camera';
 import * as ImagePicker from 'expo-image-picker';
 import * as tf from '@tensorflow/tfjs';
 import * as poseDetection from '@tensorflow-models/pose-detection';
-import { cameraWithTensors } from '@tensorflow/tfjs-react-native';
 import { manipulateAsync } from 'expo-image-manipulator';
 import { Asset } from 'expo-asset';
 import { useRegistration } from '@/contexts/RegistrationContext';
-
-// TensorCamera is a Camera that also feeds the image data to TensorFlow.js
-const TensorCamera = cameraWithTensors(Camera);
+import { FontAwesome } from '@expo/vector-icons'; // Add this import
 
 const { width } = Dimensions.get('window');
 const height = width * 1.5; // Maintain aspect ratio
 
 const BodyPartDetector = () => {
-const { userData } = useRegistration();
-    
+  const { userData } = useRegistration();
+  
   const [hasPermission, setHasPermission] = useState(null);
   const [model, setModel] = useState(null);
   const [activeBodyPart, setActiveBodyPart] = useState('');
@@ -36,15 +33,17 @@ const { userData } = useRegistration();
   const pulseAnim = useRef(new Animated.Value(1)).current;
   
   const cameraRef = useRef(null);
+  const isComponentMounted = useRef(true);
+  
   // Enhanced body part groups with upper/lower body categorization
   const bodyGroups = {
-    upperBody: [ 'shoulders', 'chest', 'arms', 'arms_right', 'abdomen'],
+    upperBody: [ 'shoulders', 'chest', 'arms', 'arms_right', 'core'],
     lowerBody: ['hips', 'upper_legs_left', 'upper_legs_right', 'lower_legs_left', 'lower_legs_right']
   };
 
   // Enhanced body region descriptions
   const bodyGroupDescriptions = {
-    upperBody: "The upper body includes the head, shoulders, chest, arms, and abdomen. These parts handle movement of the arms, breathing, and house vital organs.",
+    upperBody: "The upper body includes the head, shoulders, chest, arms, and core. These parts handle movement of the arms, breathing, and house vital organs.",
     lowerBody: "The lower body includes the hips, thighs, and lower legs. These parts support body weight, enable walking, and contain powerful muscle groups."
   };
 
@@ -91,8 +90,8 @@ const { userData } = useRegistration();
       group: 'upperBody'
     },
     { 
-      id: 'abdomen', 
-      name: 'Abdomen', 
+      id: 'core', 
+      name: 'core', 
       x: 0.5, 
       y: 0.4, 
       radius: 35, 
@@ -150,7 +149,6 @@ const { userData } = useRegistration();
       description: 'Calves and shins, connects to feet',
       group: 'lowerBody'
     },
-    
   ];
   
   // Body part mapping for MoveNet model (used when we have real detection)
@@ -180,11 +178,17 @@ const { userData } = useRegistration();
     'Shoulders': [5, 6],
     'Arms': [7, 8, 9, 10],
     'Chest': [5, 6], // Overlaps with shoulders
-    'Abdomen': [5, 6, 11, 12],
+    'core': [5, 6, 11, 12],
     'Hips': [11, 12],
     'Upper Legs': [11, 12, 13, 14],
     'Lower Legs': [13, 14, 15, 16]
   };
+  // Component unmount cleanup
+  useEffect(() => {
+    return () => {
+      isComponentMounted.current = false;
+    };
+  }, []);
 
   // Start pulsing animation
   useEffect(() => {
@@ -253,34 +257,16 @@ const { userData } = useRegistration();
       );
     })();
   }, []);
-  // Function to handle frame processing for pose detection
-  const handleCameraStream = (images) => {
-    const loop = async () => {
-      const nextImageTensor = await images.next().value;
-      
-      if (nextImageTensor && model) {
-        // Process the image tensor to get pose data
-        const poses = await model.estimatePoses(nextImageTensor);
-        setPoses(poses);
-        
-        // Dispose of the tensor to free up memory
-        tf.dispose(nextImageTensor);
-      }
-      
-      requestAnimationFrame(loop);
-    };
-    
-    loop();
-  };
-  
   // Load the default image
   const loadDefaultImage = async () => {
     try {
-      // Use the correct path to your default image
-      //const defaultImageUri = userData.gender == "male" || userData.gender == "other" ?"../../assets/images/male.jpeg":"../../assets/images/female.jpeg" 
-      const defaultImageUri = userData.gender == "male" || userData.gender == "other" ? require("../../assets/images/male.jpeg"): require("../../assets/images/female.jpeg")
+      const defaultImageUri = userData.gender == "male" || userData.gender == "other" ? 
+        require("../../assets/images/male.jpeg") : 
+        require("../../assets/images/female.jpeg");
+      
       setImageSource(defaultImageUri);
-      console.log(userData)
+      console.log(userData);
+      
       // If model is ready, try to analyze the image
       if (isModelReady) {
         // Use Asset to get local URI
@@ -299,18 +285,22 @@ const { userData } = useRegistration();
   // Take a picture from camera
   const takePicture = async () => {
     if (cameraRef.current) {
-      const photo = await cameraRef.current.takePictureAsync();
-      setImageSource(photo.uri);
-      setMode('analysis');
-      
-      // Reset highlighted regions when taking a new picture
-      setHighlightedRegions({});
-      setActiveBodyPart('');
-      setActiveDescription('');
-      setActiveBodyGroup(null);
-      
-      // Analyze the image for poses
-      analyzeImage(photo.uri);
+      try {
+        const photo = await cameraRef.current.takePictureAsync();
+        setImageSource(photo.uri);
+        setMode('analysis');
+        
+        // Reset highlighted regions when taking a new picture
+        setHighlightedRegions({});
+        setActiveBodyPart('');
+        setActiveDescription('');
+        setActiveBodyGroup(null);
+        
+        // Analyze the image for poses
+        analyzeImage(photo.uri);
+      } catch (error) {
+        console.error('Error taking picture:', error);
+      }
     }
   };
   
@@ -350,7 +340,7 @@ const { userData } = useRegistration();
         { compress: 0.8, format: 'jpeg' }
       );
       
-      // Load the image using Image.getSize to get dimensions
+      // Load the image as tensor
       const imageTensor = await loadImageTensor(imageAsset.uri);
       
       if (imageTensor) {
@@ -366,36 +356,35 @@ const { userData } = useRegistration();
     }
   };
   
-  // Helper function to load an image as a tensor
+  // Helper function to load an image as a tensor - FIXED FOR REACT NATIVE
   const loadImageTensor = async (uri) => {
     try {
-      // Use tf.util.fetch to load the image
-      const response = await fetch(uri);
-      const blob = await response.blob();
-      
-      // Create an HTMLImageElement from the blob
-      const imageBitmap = await createImageBitmap(blob);
-      
-      // Create a tensor from the image
-      const tensor = tf.browser.fromPixels(imageBitmap);
-      
-      return tensor;
+      // Use tfjs-react-native's approach instead of browser APIs
+      const imgTensor = await tf.data.image.fromImageAsync(
+        { uri: uri },
+        { height: 480, width: 640 }
+      );
+      return imgTensor;
     } catch (error) {
-      console.error('Error loading image tensor:', error);
+      console.error('Error loading image tensor with tfjs-react-native:', error);
       
-      // Fallback method using Image API
-      return new Promise((resolve, reject) => {
-        const img = new Image();
-        img.crossOrigin = 'anonymous';
-        img.onload = () => {
-          const tensor = tf.browser.fromPixels(img);
-          resolve(tensor);
-        };
-        img.onerror = (err) => reject(err);
-        img.src = uri;
-      });
+      // Alternative approach if needed
+      try {
+        // This might need additional libraries like expo-file-system
+        const response = await fetch(uri);
+        const imageData = await response.arrayBuffer();
+        const imageTensor = await tf.node.decodeImage(
+          new Uint8Array(imageData),
+          3
+        );
+        return imageTensor;
+      } catch (fallbackError) {
+        console.error('Fallback image loading also failed:', fallbackError);
+        return null;
+      }
     }
   };
+  
   // Switch to camera mode
   const switchToCamera = () => {
     setMode('camera');
@@ -404,7 +393,6 @@ const { userData } = useRegistration();
     setActiveBodyGroup(null);
     setHighlightedRegions({});
   };
-  
   // Toggle region labels visibility
   const toggleRegionLabels = () => {
     setShowRegionLabels(!showRegionLabels);
@@ -668,6 +656,7 @@ const { userData } = useRegistration();
       }
     }
   };
+  // Loading state
   if (hasPermission === null || isLoading || !userData?.gender) {
     return (
       <View style={styles.container}>
@@ -676,7 +665,8 @@ const { userData } = useRegistration();
       </View>
     );
   }
-  
+
+  // No permission state
   if (hasPermission === false) {
     return (
       <View style={styles.container}>
@@ -684,39 +674,92 @@ const { userData } = useRegistration();
       </View>
     );
   }
-  
-  // Camera Screen
+
+  // Camera Screen - USING CAMERAVIEW INSTEAD OF CAMERA
   if (mode === 'camera') {
     return (
       <View style={styles.container}>
-        <TensorCamera
-          ref={cameraRef}
-          style={{ width: width, height: height }}
-          type={Camera.Constants.Type.front}
-          resizeWidth={640}
-          resizeHeight={480}
-          resizeDepth={3}
-          autorender={true}
-          onReady={handleCameraStream}
-          useCustomShadersToResize={false}
-        />
+      {/* Camera view must be the first element to ensure it's at the bottom of the z-index stack */}
+      <CameraView
+        ref={cameraRef}
+        style={{ 
+          width, 
+          height,
+          position: 'absolute',  // Position absolutely to ensure it covers the full container
+          top: 0,
+          left: 0
+        }}
+        type={"front"}
+        onPictureTaken={(photo) => {
+          if (photo && photo.uri) {
+            setImageSource(photo.uri);
+            setMode('analysis');
+            
+            // Reset highlighted regions when taking a new picture
+            setHighlightedRegions({});
+            setActiveBodyPart('');
+            setActiveDescription('');
+            setActiveBodyGroup(null);
+            
+            // Analyze the image for poses
+            analyzeImage(photo.uri);
+          }
+        }}
+      />
+      
+      {/* UI overlay elements */}
+      <View style={{ 
+        position: 'absolute',
+        top: 0,
+        left: 0,
+        right: 0,
+        bottom: 0,
+        backgroundColor: 'transparent'  // Transparent background to let camera show through
+      }}>
+        {/* Back button */}
+        <TouchableOpacity 
+          style={[styles.button, {
+            position: 'absolute',
+            top: 40,
+            left: 20,
+            backgroundColor: 'rgba(0, 0, 0, 0.5)',
+          }]}
+          onPress={() => setMode('analysis')}
+        >
+          <Text>
+            <FontAwesome name="arrow-left" size={24} color="white" />
+          </Text>
+        </TouchableOpacity>
         
+        {/* Camera controls */}
         <View style={styles.cameraControls}>
-          <TouchableOpacity style={styles.button} onPress={() => setMode('analysis')}>
-            <Text style={styles.buttonText}>Back</Text>
-          </TouchableOpacity>
-          
-          <TouchableOpacity style={[styles.button, styles.captureButton]} onPress={takePicture}>
-            <Text style={styles.buttonText}>Capture</Text>
+          <TouchableOpacity 
+            style={[styles.button, styles.captureButton]} 
+            onPress={takePicture}
+          >
+            <Text>
+              <FontAwesome name="camera" size={28} color="white" />
+            </Text>
           </TouchableOpacity>
         </View>
         
-        <Text style={styles.instructions}>
-          Position yourself in the frame and take a photo
+        <Text style={[styles.instructions, {
+          position: 'absolute',
+          bottom: 100,
+          left: 0,
+          right: 0,
+          textAlign: 'center',
+          color: 'white',
+          backgroundColor: 'rgba(0, 0, 0, 0.3)',
+          padding: 10
+        }]}>
+          Position yourself in the frame
         </Text>
       </View>
+    </View>
     );
   }
+  
   // Analysis Screen (default mode)
   return (
     <SafeAreaView style={styles.container}>
@@ -771,9 +814,9 @@ const { userData } = useRegistration();
               </TouchableOpacity>
             </Animated.View>
           ))}
-          
-          {/* Display pose keypoints when available */}
-          {poses && poses.length > 0 && poses[0].keypoints.map((keypoint, index) => (
+
+    {/* Display pose keypoints when available */}
+    {poses && poses.length > 0 && poses[0].keypoints.map((keypoint, index) => (
             keypoint.score > 0.3 && (
               <TouchableOpacity
                 key={index}
@@ -937,8 +980,8 @@ const { userData } = useRegistration();
               )}
             </Animated.View>
           ) : null}
-          
-          {/* Overlay buttons for upper and lower body selection */}
+
+                {/* Overlay buttons for upper and lower body selection */}
           <View style={styles.overlayButtonsContainer}>
             <TouchableOpacity 
               style={[
@@ -965,242 +1008,277 @@ const { userData } = useRegistration();
         </TouchableOpacity>
       </View>
       
-      {/* Bottom control panel */}
-      <View style={styles.controlPanel}>
-        <TouchableOpacity 
-          style={[styles.controlButton, styles.cameraButton]} 
-          onPress={switchToCamera}
-        >
-          <Text style={styles.controlButtonText}>Take Photo</Text>
-        </TouchableOpacity>
-        
-        <TouchableOpacity 
-          style={[styles.controlButton, styles.galleryButton]} 
-          onPress={pickImage}
-        >
-          <Text style={styles.controlButtonText}>Gallery</Text>
-        </TouchableOpacity>
-      </View>
+{/* Bottom control panel */}
+<View style={styles.controlPanel}>
+  <TouchableOpacity 
+    style={[styles.controlButton, styles.cameraButton]} 
+    onPress={switchToCamera}
+  >
+      <Text style={{ color: 'white', marginRight: 8 }}>
+
+    <FontAwesome name="camera" size={18}  />
+    </Text>
+    <Text style={styles.controlButtonText}>Camera</Text>
+  </TouchableOpacity>
+  
+  <TouchableOpacity 
+    style={[styles.controlButton, styles.galleryButton]} 
+    onPress={pickImage}
+  >
+
+<Text style={{ color: 'white', marginRight: 8 }}>
+    <FontAwesome name="image" size={18}  />
+    </Text>
+    <Text style={styles.controlButtonText}>Gallery</Text>
+  </TouchableOpacity>
+</View>
+
       
       <Text style={styles.instructions}>
         Tap on highlighted regions to identify and learn about body parts
       </Text>
     </SafeAreaView>
-  );}
-  const styles = StyleSheet.create({
-    container: {
-      flex: 1,
-      backgroundColor: '#f5f5f5',
-    },
-    imageContainer: {
-      alignItems: 'center',
-      justifyContent: 'center',
-      position: 'relative',
-    },
-    loadingText: {
-      fontSize: 18,
-      textAlign: 'center',
-      marginTop: 20,
-    },
-    loader: {
-      marginTop: 100,
-    },
-    errorText: {
-      fontSize: 18,
-      textAlign: 'center',
-      marginTop: 100,
-      color: 'red',
-    },
-    bodyPartRegion: {
-      position: 'absolute',
-      borderWidth: 2,
-      justifyContent: 'center',
-      alignItems: 'center',
-      shadowColor: '#000',
-      shadowOffset: { width: 0, height: 2 },
-      shadowOpacity: 0.3,
-      shadowRadius: 3,
-      elevation: 5,
-    },
-    regionTouchable: {
-      width: '100%',
-      height: '100%',
-      justifyContent: 'center',
-      alignItems: 'center',
-    },
-    regionLabel: {
-      backgroundColor: 'rgba(0, 0, 0, 0.7)',
-      paddingHorizontal: 8,
-      paddingVertical: 4,
-      borderRadius: 12,
-    },
-    regionLabelText: {
-      color: 'white',
-      fontSize: 10,
-      fontWeight: 'bold',
-    },
-    poseKeypoint: {
-      position: 'absolute',
-      width: 30,
-      height: 30,
-      backgroundColor: 'rgba(234, 67, 53, 0.3)',
-      borderRadius: 15,
-      justifyContent: 'center',
-      alignItems: 'center',
-      shadowColor: '#000',
-      shadowOffset: { width: 0, height: 1 },
-      shadowOpacity: 0.2,
-      shadowRadius: 1.5,
-      elevation: 3,
-    },
-    keypointInner: {
-      width: 12,
-      height: 12,
-      backgroundColor: 'rgba(234, 67, 53, 0.9)',
-      borderRadius: 6,
-    },
-    tooltip: {
-      position: 'absolute',
-      backgroundColor: 'rgba(0, 0, 0, 0.8)',
-      padding: 10,
-      borderRadius: 8,
-      width: 150,
-      alignItems: 'center',
-      zIndex: 100,
-      shadowColor: '#000',
-      shadowOffset: { width: 0, height: 3 },
-      shadowOpacity: 0.5,
-      shadowRadius: 5,
-      elevation: 10,
-    },
-    tooltipTitle: {
-      color: 'white',
-      fontWeight: 'bold',
-      fontSize: 16,
-      marginBottom: 5,
-    },
-    tooltipDescription: {
-      color: 'white',
-      fontSize: 12,
-      textAlign: 'center',
-    },
-    tooltipHint: {
-      color: '#ccc',
-      fontSize: 10,
-      fontStyle: 'italic',
-      textAlign: 'center',
-      marginTop: 5,
-    },
-    // Overlay buttons styles
-    overlayButtonsContainer: {
-      position: 'absolute',
-      left: 15,
-      top: 20,
-      flexDirection: 'column',
-      alignItems: 'flex-start',
-      zIndex: 50,
-    },
-    overlayButton: {
-      backgroundColor: 'rgba(255, 255, 255, 0.85)',
-      marginBottom: 15,
-      paddingVertical: 10,
-      paddingHorizontal: 15,
-      borderRadius: 20,
-      flexDirection: 'row',
-      alignItems: 'center',
-      shadowColor: '#000',
-      shadowOffset: { width: 0, height: 2 },
-      shadowOpacity: 0.3,
-      shadowRadius: 3,
-      elevation: 5,
-      borderWidth: 1,
-      borderColor: '#ddd',
-    },
-    activeOverlayButton: {
-      backgroundColor: 'rgba(66, 133, 244, 0.9)',
-      borderColor: '#3367d6',
-    },
-    overlayButtonIcon: {
-      fontSize: 18,
-      marginRight: 8,
-    },
-    overlayButtonText: {
-      fontSize: 14,
-      fontWeight: '600',
-      color: '#333',
-    },
-    controlPanel: {
-      flexDirection: 'row',
-      justifyContent: 'space-around',
-      paddingVertical: 15,
-      paddingHorizontal: 20,
-      backgroundColor: 'white',
-      borderTopWidth: 1,
-      borderTopColor: '#ddd',
-    },
-    controlButton: {
-      paddingVertical: 12,
-      paddingHorizontal: 25,
-      borderRadius: 25,
-      minWidth: 140,
-      alignItems: 'center',
-      shadowColor: '#000',
-      shadowOffset: { width: 0, height: 2 },
-      shadowOpacity: 0.2,
-      shadowRadius: 2,
-      elevation: 2,
-    },
-    cameraButton: {
-      backgroundColor: '#4285F4',
-    },
-    galleryButton: {
-      backgroundColor: '#34A853',
-    },
-    controlButtonText: {
-      color: 'white',
-      fontWeight: 'bold',
-      fontSize: 16,
-    },
-    cameraControls: {
-      position: 'absolute',
-      bottom: 30,
-      left: 0,
-      right: 0,
-      flexDirection: 'row',
-      justifyContent: 'space-around',
-      alignItems: 'center',
-    },
-    button: {
-      backgroundColor: '#4285F4',
-      paddingHorizontal: 20,
-      paddingVertical: 12,
-      borderRadius: 25,
-      shadowColor: '#000',
-      shadowOffset: { width: 0, height: 2 },
-      shadowOpacity: 0.3,
-      shadowRadius: 3,
-      elevation: 5,
-    },
-    captureButton: {
-      backgroundColor: '#EA4335',
-      width: 70,
-      height: 70,
-      borderRadius: 35,
-      justifyContent: 'center',
-      alignItems: 'center',
-    },
-    buttonText: {
-      color: 'white',
-      fontSize: 16,
-      fontWeight: 'bold',
-      textAlign: 'center',
-    },
-    instructions: {
-      padding: 15,
-      textAlign: 'center',
-      fontSize: 16,
-      color: '#555',
-    }
-  });
-  
-  export default BodyPartDetector;
+  );
+}
+
+const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+    backgroundColor: 'transparent', // Changed from '#f5f5f5' to transparent
+    position: 'relative',  // Ensure position relative for absolute children
+  },
+  imageContainer: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    position: 'relative',
+  },
+  loadingText: {
+    fontSize: 18,
+    textAlign: 'center',
+    marginTop: 20,
+  },
+  loader: {
+    marginTop: 100,
+  },
+  errorText: {
+    fontSize: 18,
+    textAlign: 'center',
+    marginTop: 100,
+    color: 'red',
+  },
+  bodyPartRegion: {
+    position: 'absolute',
+    borderWidth: 2,
+    justifyContent: 'center',
+    alignItems: 'center',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.3,
+    shadowRadius: 3,
+    elevation: 5,
+  },
+  regionTouchable: {
+    width: '100%',
+    height: '100%',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  regionLabel: {
+    backgroundColor: 'rgba(0, 0, 0, 0.7)',
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 12,
+  },
+  regionLabelText: {
+    color: 'white',
+    fontSize: 10,
+    fontWeight: 'bold',
+  },
+  poseKeypoint: {
+    position: 'absolute',
+    width: 30,
+    height: 30,
+    backgroundColor: 'rgba(234, 67, 53, 0.3)',
+    borderRadius: 15,
+    justifyContent: 'center',
+    alignItems: 'center',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.2,
+    shadowRadius: 1.5,
+    elevation: 3,
+  },
+  keypointInner: {
+    width: 12,
+    height: 12,
+    backgroundColor: 'rgba(234, 67, 53, 0.9)',
+    borderRadius: 6,
+  },
+  tooltip: {
+    position: 'absolute',
+    backgroundColor: 'rgba(0, 0, 0, 0.8)',
+    padding: 10,
+    borderRadius: 8,
+    width: 150,
+    alignItems: 'center',
+    zIndex: 100,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 3 },
+    shadowOpacity: 0.5,
+    shadowRadius: 5,
+    elevation: 10,
+  },
+  tooltipTitle: {
+    color: 'white',
+    fontWeight: 'bold',
+    fontSize: 16,
+    marginBottom: 5,
+  },
+  tooltipDescription: {
+    color: 'white',
+    fontSize: 12,
+    textAlign: 'center',
+  },
+  tooltipHint: {
+    color: '#ccc',
+    fontSize: 10,
+    fontStyle: 'italic',
+    textAlign: 'center',
+    marginTop: 5,
+  },
+  // Overlay buttons styles
+  overlayButtonsContainer: {
+    position: 'absolute',
+    left: 15,
+    top: 20,
+    flexDirection: 'column',
+    alignItems: 'flex-start',
+    zIndex: 50,
+  },
+  overlayButton: {
+    backgroundColor: 'rgba(255, 255, 255, 0.85)',
+    marginBottom: 15,
+    paddingVertical: 10,
+    paddingHorizontal: 15,
+    borderRadius: 20,
+    flexDirection: 'row',
+    alignItems: 'center',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.3,
+    shadowRadius: 3,
+    elevation: 5,
+    borderWidth: 1,
+    borderColor: '#ddd',
+  },
+  activeOverlayButton: {
+    backgroundColor: 'rgba(66, 133, 244, 0.9)',
+    borderColor: '#3367d6',
+  },
+  overlayButtonIcon: {
+    fontSize: 18,
+    marginRight: 8,
+  },
+  overlayButtonText: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#333',
+  },
+  controlPanel: {
+    flexDirection: 'row',
+    justifyContent: 'space-around',
+    paddingVertical: 15,
+    paddingHorizontal: 20,
+    backgroundColor: 'white',
+    borderTopWidth: 1,
+    borderTopColor: '#ddd',
+  },
+  controlButton: {
+    paddingVertical: 12,
+    paddingHorizontal: 25,
+    borderRadius: 25,
+    minWidth: 140,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.2,
+    shadowRadius: 2,
+    elevation: 2,
+  },
+  cameraButton: {
+    backgroundColor: '#4285F4',
+  },
+  galleryButton: {
+    backgroundColor: '#34A853',
+  },
+  controlButtonText: {
+    color: 'white',
+    fontWeight: 'bold',
+    fontSize: 16,
+  },
+  cameraControls: {
+    position: 'absolute',
+    bottom: 15,
+    left: 0,
+    right: 0,
+    flexDirection: 'row',
+    justifyContent: 'space-around',
+    alignItems: 'center',
+  },
+  button: {
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    width: 60,
+    height: 60,
+    borderRadius: 30,
+    justifyContent: 'center',
+    alignItems: 'center',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.3,
+    shadowRadius: 3,
+    elevation: 5,
+  },
+  captureButton: {
+    backgroundColor: '#EA4335',
+    width: 80,
+    height: 80,
+    borderRadius: 40,
+    borderWidth: 4,
+    borderColor: 'white',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  buttonText: {
+    color: 'white',
+    fontSize: 16,
+    fontWeight: 'bold',
+    textAlign: 'center',
+  },
+  instructions: {
+    padding: 15,
+    textAlign: 'center',
+    fontSize: 16,
+    color: '#555',
+  },
+  backButton: {
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    width: 50,
+    height: 50,
+    borderRadius: 25,
+    justifyContent: 'center',
+    alignItems: 'center',
+    position: 'absolute',
+    top: 20,
+    left: 20,
+    zIndex: 10,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.3,
+    shadowRadius: 3,
+    elevation: 5,
+  },
+});
+
+export default BodyPartDetector;
