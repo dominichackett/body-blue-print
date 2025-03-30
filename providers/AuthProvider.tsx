@@ -1,27 +1,14 @@
 import React, { createContext, useState, useEffect, ReactNode } from 'react';
-import Web3Auth, { LOGIN_PROVIDER, LoginParams, OPENLOGIN_NETWORK } from "@web3auth/react-native-sdk";
+
+import Web3Auth, { LOGIN_PROVIDER, LoginParams ,WEB3AUTH_NETWORK_TYPE} from "@web3auth/react-native-sdk";
 import * as WebBrowser from "expo-web-browser";
-import  EncryptedStorage  from 'react-native-encrypted-storage';
+import * as SecureStore from "expo-secure-store";
 import { CommonPrivateKeyProvider } from "@web3auth/base-provider";
+import { EthereumPrivateKeyProvider } from "@web3auth/ethereum-provider";
+
 import { CHAIN_NAMESPACES, WEB3AUTH_NETWORK } from "@web3auth/base";
-import config from '../config'; // Adjust path if needed
-const privateKeyProvider = new CommonPrivateKeyProvider({
-  config: {
-    /*
-      pass the chain config that you want to connect with.
-      all chainConfig fields are required.
-      */
-    chainConfig: {
-      chainNamespace: CHAIN_NAMESPACES.OTHER,
-      chainId: "0x1",
-      rpcTarget: `https://rpc.target.url`,
-      displayName: "Display Name",
-      blockExplorerUrl: "https://chain.explorer.link",
-      ticker: "TKR",
-      tickerName: "Ticker Name",
-    },
-  },
-});
+
+
 
 
 // Define types for Web3Auth user info
@@ -45,23 +32,47 @@ interface AuthProviderProps {
   children: ReactNode;
 }
 
+// IMP START - SDK Initialization
+const chainConfig = {
+  chainNamespace: CHAIN_NAMESPACES.EIP155,
+  chainId: "0xaa36a7",
+  rpcTarget: "https://rpc.ankr.com/eth_sepolia",
+  // Avoid using public rpcTarget in production.
+  // Use services like Infura, Quicknode etc
+  displayName: "Ethereum Sepolia Testnet",
+  blockExplorerUrl: "https://sepolia.etherscan.io",
+  ticker: "ETH",
+  tickerName: "Ethereum",
+  decimals: 18,
+  logo: "https://cryptologos.cc/logos/ethereum-eth-logo.png",
+};
+
+const privateKeyProvider = new EthereumPrivateKeyProvider({
+  config: {
+    chainConfig,
+  },
+});
+
+
+const web3auth = new Web3Auth(WebBrowser,SecureStore, {
+  clientId:'BD7Y19ePeIm9VJS-83sl8JsG_CTU0vHzt9zc240Py-6irvQQi8mMcJiwP7mWkH__07fmIIewBmFwWsTlQJbO06I', // Replace with your Client ID
+  network:WEB3AUTH_NETWORK.SAPPHIRE_DEVNET , // Or 'mainnet'
+  redirectUrl: 'com.dominichackett.bodyblueprint://auth', // Custom scheme
+  privateKeyProvider:privateKeyProvider
+});
+
 const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   const [user, setUser] = useState<Web3AuthUser | null>(null);
   const [loading, setLoading] = useState<boolean>(true);
 
-  const web3auth = new Web3Auth(WebBrowser,EncryptedStorage, {
-    clientId: config.WEB3AUTH_CLIENT_ID, // Replace with your Client ID
-    network: 'testnet', // Or 'mainnet'
-    redirectUrl: 'com.dominichackett.bodyblueprint://auth', // Custom scheme
-    privateKeyProvider:privateKeyProvider
-  });
+  
 
   useEffect(() => {
     const init = async () => {
       try {
         await web3auth.init();
         if (web3auth.connected) {
-          const userInfo = await web3auth.userInfo;
+          const userInfo =  web3auth.userInfo;
           setUser(userInfo);
         }
       } catch (error) {
@@ -75,8 +86,9 @@ const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
 
   const login = async (params: LoginParams) => {
     try {
+      await web3auth.init()
       await web3auth.login(params);
-      const userInfo = await web3auth.userInfo;
+      const userInfo =  web3auth.userInfo;
       setUser(userInfo);
     } catch (error) {
       console.error('Login failed:', error);

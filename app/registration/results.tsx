@@ -232,7 +232,7 @@ export default function ResultsScreen() {
         />
         
         <ActionButton
-          title="Continue"
+          title="Register"
           onPress={handleContinue}
           icon="arrow.right"
           fullWidth

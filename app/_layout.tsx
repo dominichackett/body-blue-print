@@ -8,6 +8,14 @@ import 'react-native-reanimated';
 
 import { useColorScheme } from '@/hooks/useColorScheme';
 import { AuthProvider } from '@/providers/AuthProvider';
+
+import "../globals"
+import "react-native-get-random-values";
+
+//import "react-native-url-polyfill/auto";
+
+import { Buffer } from 'buffer';
+global.Buffer = Buffer; // Make Buffer globally available
 // Prevent the splash screen from auto-hiding before asset loading is complete.
 SplashScreen.preventAutoHideAsync();
 
@@ -28,15 +36,14 @@ export default function RootLayout() {
   }
 
   return (
-      
+      <AuthProvider>
       <ThemeProvider value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>
         <Stack screenOptions={{ headerShown: false }}>
-          <Stack.Screen name="registration" />
           <Stack.Screen name="+not-found" />
         </Stack>
         <StatusBar style="auto" />
       </ThemeProvider>
-    
+      </AuthProvider>
     
   );
 }
