@@ -15,6 +15,7 @@ import "react-native-get-random-values";
 //import "react-native-url-polyfill/auto";
 
 import { Buffer } from 'buffer';
+import { RegistrationProvider } from '@/contexts/RegistrationContext';
 global.Buffer = Buffer; // Make Buffer globally available
 // Prevent the splash screen from auto-hiding before asset loading is complete.
 SplashScreen.preventAutoHideAsync();
@@ -37,12 +38,16 @@ export default function RootLayout() {
 
   return (
       <AuthProvider>
+        <RegistrationProvider>
       <ThemeProvider value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>
         <Stack screenOptions={{ headerShown: false }}>
+          {/* This will render the tabs as the initial route */}
+          <Stack.Screen name="(tabs)" />
           <Stack.Screen name="+not-found" />
         </Stack>
         <StatusBar style="auto" />
       </ThemeProvider>
+      </RegistrationProvider>
       </AuthProvider>
     
   );

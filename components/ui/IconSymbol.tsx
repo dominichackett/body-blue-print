@@ -22,6 +22,11 @@ const MAPPING = {
   'chart.bar.fill': 'bar-chart',
   'arrow.right': 'arrow-forward',
   'arrow.left': 'arrow-back',
+  'male': 'face',
+  'female':'face-4',
+  'other':'face-retouching-natural',
+  'exercise':'directions-run',
+  'calories':'calculate'
 } as Partial<
   Record<
     import('expo-symbols').SymbolViewProps['name'],

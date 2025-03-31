@@ -1,32 +1,59 @@
-import React from 'react';
-import { StyleSheet, Image, View, Dimensions, ScrollView } from 'react-native';
+import React, { useEffect, useState } from 'react';
+import { StyleSheet, Image, View, Dimensions, ScrollView, TextInput, Alert } from 'react-native';
 import { Stack, router } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import { LinearGradient } from 'expo-linear-gradient';
 import { BlurView } from 'expo-blur';
-import Web3Auth, { ChainNamespace, LOGIN_PROVIDER, WEB3AUTH_NETWORK } from "@web3auth/react-native-sdk";
+import { LOGIN_PROVIDER } from "@web3auth/react-native-sdk";
 
 import { ThemedView } from '@/components/ThemedView';
 import { ThemedText } from '@/components/ThemedText';
 import { ActionButton } from '@/components/ActionButton';
-import { ProgressIndicator } from '@/components/ProgressIndicator';
-import { Colors } from '@/constants/Colors';
 import { useColorScheme } from '@/hooks/useColorScheme';
 import { useAuth } from '@/providers/AuthProvider';
 const { width } = Dimensions.get('window');
 
-
-
 export default function WelcomeScreen() {
-  const {login} = useAuth()
+  const { login, user, loading } = useAuth();
   const colorScheme = useColorScheme();
   const isDark = colorScheme === 'dark';
+  const [email, setEmail] = useState('');
+  const [isEmailValid, setIsEmailValid] = useState(false);
   
-  const handleGetStarted = async() => {
-    await login({ mfaLevel: "default", // Pass on the MFA level of your choice: default, optional, mandatory, none
-      loginProvider: LOGIN_PROVIDER.GOOGLE})
+  // Email validation function
+  const validateEmail = (email) => {
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    return emailRegex.test(email);
   };
 
+  // Handle email input change
+  const handleEmailChange = (text) => {
+    setEmail(text);
+    setIsEmailValid(validateEmail(text));
+  };
+  
+  const handleGetStarted = async () => {
+    if (!isEmailValid) {
+      Alert.alert('Invalid Email', 'Please enter a valid email address to continue.');
+      return;
+    }
+    
+    await login({ 
+      mfaLevel: "default", // Pass on the MFA level of your choice: default, optional, mandatory, none
+      extraLoginOptions: {
+        login_hint: email,
+      },
+      loginProvider: LOGIN_PROVIDER.EMAIL_PASSWORDLESS
+    });
+  };
+  
+  useEffect(() => {
+    console.log(user);
+    console.log(loading);
+    if (user)
+      router.replace("/(tabs)");
+  }, [loading]);
+  
   return (
     <ThemedView style={styles.container}>
       <StatusBar style="auto" />
@@ -68,15 +95,49 @@ export default function WelcomeScreen() {
               Your personalized fitness journey starts here. We'll collect some basic information to create your custom macro nutrition plan.
             </ThemedText>
             
-            <View style={styles.buttonWrapper}>
-              <ActionButton
-                title="Get Started"
-                onPress={handleGetStarted}
-                icon="arrow.right"
-                style={styles.getStartedButton}
-                textStyle={styles.buttonText}
-              />
-            </View>
+            {!loading && (
+              <View style={styles.buttonWrapper}>
+                {/* Email Input */}
+                <BlurView
+                  intensity={40}
+                  tint={isDark ? 'dark' : 'light'}
+                  style={styles.emailInputContainer}
+                >
+                  <LinearGradient
+                    colors={isDark ? 
+                      ['rgba(30, 41, 59, 0.4)', 'rgba(30, 41, 59, 0.1)'] :
+                      ['rgba(255, 255, 255, 0.7)', 'rgba(255, 255, 255, 0.5)']}
+                    style={styles.emailInputGradient}
+                  >
+                    <ThemedText style={styles.emailLabel}>Email Address</ThemedText>
+                    <TextInput
+                      style={[
+                        styles.emailInput,
+                        { color: isDark ? '#FFFFFF' : '#000000' }
+                      ]}
+                      placeholder="Enter your email"
+                      placeholderTextColor={isDark ? 'rgba(255, 255, 255, 0.5)' : 'rgba(0, 0, 0, 0.5)'}
+                      keyboardType="email-address"
+                      autoCapitalize="none"
+                      autoCorrect={false}
+                      value={email}
+                      onChangeText={handleEmailChange}
+                    />
+                  </LinearGradient>
+                </BlurView>
+                
+                <ActionButton
+                  title="Get Started"
+                  onPress={handleGetStarted}
+                  icon="arrow.right"
+                  style={[
+                    styles.getStartedButton,
+                    { opacity: isEmailValid ? 1 : 0.7 }
+                  ]}
+                  textStyle={styles.buttonText}
+                />
+              </View>
+            )}
           </View>
           
           {/* You can add the Feature components here if needed */}
@@ -182,6 +243,30 @@ const styles = StyleSheet.create({
     opacity: 0.9,
     lineHeight: 24,
     maxWidth: 400,
+  },
+  emailInputContainer: {
+    borderRadius: 16,
+    overflow: 'hidden',
+    marginBottom: 16,
+    width: '100%',
+  },
+  emailInputGradient: {
+    padding: 16,
+    borderRadius: 16,
+    borderWidth: 1,
+    borderColor: 'rgba(78, 205, 196, 0.3)',
+  },
+  emailLabel: {
+    fontSize: 14,
+    marginBottom: 8,
+    fontWeight: '500',
+  },
+  emailInput: {
+    fontSize: 16,
+    paddingVertical: 8,
+    paddingHorizontal: 0,
+    borderBottomWidth: 1,
+    borderBottomColor: '#4ECDC4',
   },
   features: {
     width: '100%',

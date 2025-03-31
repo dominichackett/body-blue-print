@@ -16,7 +16,7 @@ import { Gender } from '@/utils/macroCalculator';
 import { useColorScheme } from '@/hooks/useColorScheme';
 
 const REGISTRATION_STEPS = [
-  'Welcome',
+  
   'Personal Info',
   'Activity',
   'Goals',
@@ -191,7 +191,7 @@ export default function PersonalInfoScreen() {
                 <View style={styles.genderOptions}>
                   <SelectionCard
                     title="Male"
-                    icon="person.fill"
+                    icon="male"
                     isSelected={userData.gender === 'male'}
                     onSelect={() => handleSelectGender('male')}
                     style={styles.genderCard}
@@ -200,7 +200,7 @@ export default function PersonalInfoScreen() {
                   
                   <SelectionCard
                     title="Female"
-                    icon="person.2.fill"
+                    icon="female"
                     isSelected={userData.gender === 'female'}
                     onSelect={() => handleSelectGender('female')}
                     style={styles.genderCard}
@@ -209,7 +209,7 @@ export default function PersonalInfoScreen() {
                   
                   <SelectionCard
                     title="Other"
-                    icon="person.circle.fill"
+                    icon="other"
                     isSelected={userData.gender === 'other'}
                     onSelect={() => handleSelectGender('other')}
                     style={styles.genderCard}
@@ -228,14 +228,7 @@ export default function PersonalInfoScreen() {
             style={styles.footerBlur}
           >
             <View style={styles.buttonRow}>
-                <ActionButton
-                          title="Back"
-                          onPress={handleBack}
-                          variant="outline"
-                          icon="arrow.left"
-                          iconPosition="left"
-                          style={styles.backButton}
-                        />
+              
               
               <ActionButton
                 title="Continue"

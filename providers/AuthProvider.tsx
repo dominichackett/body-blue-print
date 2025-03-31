@@ -1,9 +1,8 @@
 import React, { createContext, useState, useEffect, ReactNode } from 'react';
 
-import Web3Auth, { LOGIN_PROVIDER, LoginParams ,WEB3AUTH_NETWORK_TYPE} from "@web3auth/react-native-sdk";
+import Web3Auth, {  LoginParams } from "@web3auth/react-native-sdk";
 import * as WebBrowser from "expo-web-browser";
 import * as SecureStore from "expo-secure-store";
-import { CommonPrivateKeyProvider } from "@web3auth/base-provider";
 import { EthereumPrivateKeyProvider } from "@web3auth/ethereum-provider";
 
 import { CHAIN_NAMESPACES, WEB3AUTH_NETWORK } from "@web3auth/base";
@@ -36,7 +35,7 @@ interface AuthProviderProps {
 const chainConfig = {
   chainNamespace: CHAIN_NAMESPACES.EIP155,
   chainId: "0xaa36a7",
-  rpcTarget: "https://rpc.ankr.com/eth_sepolia",
+  rpcTarget: "https://sepolia.infura.io/v3/cc3d735754d4494ab257cc446f1ab511",
   // Avoid using public rpcTarget in production.
   // Use services like Infura, Quicknode etc
   displayName: "Ethereum Sepolia Testnet",
@@ -57,7 +56,7 @@ const privateKeyProvider = new EthereumPrivateKeyProvider({
 const web3auth = new Web3Auth(WebBrowser,SecureStore, {
   clientId:'BD7Y19ePeIm9VJS-83sl8JsG_CTU0vHzt9zc240Py-6irvQQi8mMcJiwP7mWkH__07fmIIewBmFwWsTlQJbO06I', // Replace with your Client ID
   network:WEB3AUTH_NETWORK.SAPPHIRE_DEVNET , // Or 'mainnet'
-  redirectUrl: 'com.dominichackett.bodyblueprint://auth', // Custom scheme
+  redirectUrl: 'com.dominichackett.bodyblueprint://tabs', // Custom scheme
   privateKeyProvider:privateKeyProvider
 });
 
@@ -70,13 +69,24 @@ const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   useEffect(() => {
     const init = async () => {
       try {
+        console.log('Initializing Web3Auth...');
         await web3auth.init();
-        if (web3auth.connected) {
-          const userInfo =  web3auth.userInfo;
-          setUser(userInfo);
+        console.log('Web3Auth initialized, checking connection status...');
+        
+        // Check if web3auth is properly initialized and has connected property
+        if (web3auth && typeof web3auth.connected === 'boolean') {
+          if (web3auth.connected) {
+            const userInfo = await web3auth.userInfo() as Web3AuthUser; // userInfo might also be async
+            setUser(userInfo);
+            console.log('User info:', userInfo);
+          } else {
+            console.log('Web3Auth initialized but not connected');
+          }
+        } else {
+          console.log('Web3Auth object or connected property not ready');
         }
       } catch (error) {
-        console.error('Init failed:', error);
+        console.error('Web3Auth initialization failed:', error);
       } finally {
         setLoading(false);
       }

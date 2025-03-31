@@ -12,7 +12,6 @@ import { useRegistration } from '@/contexts/RegistrationContext';
 import { ActivityLevel } from '@/utils/macroCalculator';
 
 const REGISTRATION_STEPS = [
-  'Welcome',
   'Personal Info',
   'Activity',
   'Goals',

@@ -13,6 +13,7 @@ import { useColorScheme } from '@/hooks/useColorScheme';
 import { calculateBMI, getBMICategory } from '@/utils/macroCalculator'; // Import BMI functions
 
 const REGISTRATION_STEPS = [
+  'Welcome',
   'Personal Info',
   'Activity',
   'Goals',
@@ -23,6 +24,11 @@ export default function ResultsScreen() {
   const { userData, macroResults, prevStep, resetRegistration } = useRegistration();
   const colorScheme = useColorScheme();
   const tintColor = Colors[colorScheme ?? 'light'].tint;
+
+   const handleGenerateMacros = () => {
+      prevStep();
+      router.push('/registration/personal-info');
+    };
   
   // Calculate BMI
   const bmi = calculateBMI(userData.height, userData.weight);
@@ -65,14 +71,19 @@ export default function ResultsScreen() {
   const handleContinue = () => {
     // In a real app, this would navigate to the main dashboard
     // For now, we'll just go back to the welcome screen
-    router.replace('/(tabs)/macros');
-    
+    router.push('/registration/body');
   };
   
   if (!macroResults) {
     return (
       <ThemedView style={[styles.container, styles.centered]}>
-        <ThemedText>Loading your results...</ThemedText>
+        <ActionButton
+                       title="Generate Macros"
+                       onPress={handleGenerateMacros}
+                       icon="arrow.right"
+                       style={styles.dashboardButton}
+                       textStyle={styles.buttonText}
+                     />
       </ThemedView>
     );
   }
@@ -83,12 +94,11 @@ export default function ResultsScreen() {
       
       <Stack.Screen
         options={{
-          title: 'Your Results',
+          title: 'Your Macros',
           headerShown: true,
         }}
       />
       
-      <ProgressIndicator steps={REGISTRATION_STEPS} />
       
       <ScrollView 
         style={styles.scrollView}
@@ -224,16 +234,11 @@ export default function ResultsScreen() {
       </ScrollView>
       
       <View style={styles.footer}>
-        <ActionButton
-          title="Start Over"
-          onPress={handleStartOver}
-          variant="outline"
-          style={styles.startOverButton}
-        />
+       
         
         <ActionButton
-          title="Save Macros"
-          onPress={handleContinue}
+          title="Generate Macros"
+          onPress={handleGenerateMacros}
           icon="arrow.right"
           fullWidth
           style={styles.dashboardButton}
@@ -547,4 +552,17 @@ const styles = StyleSheet.create({
   },
   dashboardButton: {
   },
+  registrationButton: {
+    alignSelf: 'center',
+    width: '60%',
+    height: 54,
+    borderRadius: 14,
+    backgroundColor: '#4ECDC4',
+    marginLeft: 10,  // Increased from 20 to 40
+    marginRight: 10  // Increased from 20 to 40
+  },
+  buttonText: {
+    fontSize: 16,
+    fontWeight: '600',
+  }
 });
