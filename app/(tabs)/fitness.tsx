@@ -1,5 +1,6 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { View, Text, StyleSheet, Dimensions, TouchableOpacity, Image, SafeAreaView, ActivityIndicator, Animated, StatusBar } from 'react-native';
+import { View, Text, StyleSheet, Dimensions, TouchableOpacity, Image, SafeAreaView, ActivityIndicator, Animated, StatusBar,  TouchableWithoutFeedback
+,Modal} from 'react-native';
 import { Camera, CameraView } from 'expo-camera';
 import * as ImagePicker from 'expo-image-picker';
 import * as tf from '@tensorflow/tfjs';
@@ -8,14 +9,15 @@ import { manipulateAsync } from 'expo-image-manipulator';
 import { Asset } from 'expo-asset';
 import { useRegistration } from '@/contexts/RegistrationContext';
 import { FontAwesome } from '@expo/vector-icons'; // Add this import
-import { Stack } from 'expo-router';
+import { Stack,router } from 'expo-router';
 
 const { width } = Dimensions.get('window');
 const height = width * 1.5; // Maintain aspect ratio
 
 const BodyPartDetector = () => {
   const { userData } = useRegistration();
-  
+  const [showDialog, setShowDialog] = useState(false);
+  const [selectedRegion, setSelectedRegion] = useState(''); 
   const [hasPermission, setHasPermission] = useState(null);
   const [model, setModel] = useState(null);
   const [activeBodyPart, setActiveBodyPart] = useState('');
@@ -184,6 +186,38 @@ const BodyPartDetector = () => {
     'Upper Legs': [11, 12, 13, 14],
     'Lower Legs': [13, 14, 15, 16]
   };
+
+// Function to handle exercise type selection
+const handleExerciseTypeSelect = (bodyPart, exerciseType) => {
+  console.log(`Selected ${exerciseType} for ${bodyPart}`);
+  // Here you would implement your logic for handling the selection
+  // For example, navigate to a list of exercises for this body part and type
+  
+  // 1 = Free Weight, 2 = Machine (as requested)
+  const exerciseTypeCode = exerciseType === 'Free Weight' ? 1 : 2;
+  router.push({pathname:'/workout/exercise',params: {
+    bodyPart: bodyPart,
+    exerciseType: exerciseTypeCode.toString()
+  }});
+  // Call your dummy function with the parameters
+ // selectExerciseType(bodyPart, exerciseTypeCode);
+  
+  // Close the dialog
+  setShowDialog(false);
+};
+
+// Dummy function as requested
+const selectExerciseType = (bodyPart, typeCode) => {
+  console.log(`Exercise selected - Body Part: ${bodyPart}, Type Code: ${typeCode}`);
+  // In a real implementation, this might:
+  // - Navigate to a new screen
+  // - Filter a list of exercises
+  // - Add the selection to a workout plan
+  // etc.
+};
+
+
+
   // Component unmount cleanup
   useEffect(() => {
     return () => {
@@ -529,50 +563,67 @@ const analyzeImage = async (uri) => {
   
   // Enhanced function for region touch with single region selection
   const handleRegionTouch = (region) => {
-    // If no body group is active, implement single region selection
+    // Calculate exact position before setting any state
+    const tooltipX = region.x * width;
+    const tooltipY = region.y * height - 40;
+    
+    console.log("Region:", region.name);
+    console.log("Position:", { x: tooltipX, y: tooltipY });
+    
     if (!activeBodyGroup) {
-      // Check if this region is already highlighted
       const isAlreadyHighlighted = highlightedRegions[region.id];
       
       if (isAlreadyHighlighted) {
-        // If already highlighted, just toggle it off
+        // If already highlighted, toggle it off
         const updatedHighlights = { ...highlightedRegions };
         delete updatedHighlights[region.id];
         setHighlightedRegions(updatedHighlights);
         setActiveBodyPart('');
         setActiveDescription('');
       } else {
-        // If not highlighted, clear all other highlights and set this one
+        // First set position, then the active part - order matters!
+        setTooltipPosition({ x: tooltipX, y: tooltipY });
+        
+        // Then update highlights and active part
         const newHighlights = {};
         newHighlights[region.id] = true;
         setHighlightedRegions(newHighlights);
         setActiveBodyPart(region.name);
         setActiveDescription(region.description);
-        setTooltipPosition({ 
-          x: region.x * width, 
-          y: region.y * height - 40 
-        });
+        
+        // Finally show the dialog
+        setSelectedRegion(region.name);
+        setShowDialog(true);
       }
     } else {
-      // If a body group is active, toggle just this region
+      // First set position, then update other states
+      setTooltipPosition({ x: tooltipX, y: tooltipY });
+      
+      // Then update the other states
       setActiveBodyPart(region.name);
       setActiveDescription(region.description);
-      setTooltipPosition({ 
-        x: region.x * width, 
-        y: region.y * height - 40 
-      });
       
-      // Toggle highlight for this region
       setHighlightedRegions(prev => ({
         ...prev,
         [region.id]: !prev[region.id]
       }));
       
-      // Clear any active body group
       setActiveBodyGroup(null);
+      
+      // Finally show the dialog
+      setSelectedRegion(region.name);
+      setShowDialog(true);
     }
   };
-  
+
+  // Similarly, modify your tooltip press handler to show the dialog when clicked
+const handleTooltipPress = () => {
+  if (activeBodyPart) {
+    setSelectedRegion(activeBodyPart);
+    setShowDialog(true);
+  }
+};
+
   // Update the handleImageTouch function to handle body groups and single region selection
   const handleImageTouch = (event) => {
     if (poses && poses.length > 0) {
@@ -941,6 +992,15 @@ if (hasPermission === false) {
             </Animated.View>
           ))}
 
+     {/* History button */}
+<TouchableOpacity 
+  style={styles.historyButton}
+  onPress={() => router.push('/workout/savedworkouts')}
+>
+  <FontAwesome name="history" size={24} color="white" />
+</TouchableOpacity>
+     
+
     {/* Display pose keypoints when available */}
     {poses && poses.length > 0 && poses[0].keypoints.map((keypoint, index) => (
             keypoint.score > 0.3 && (
@@ -1081,32 +1141,36 @@ if (hasPermission === false) {
           
           {/* Enhanced tooltip for active body part or group */}
           {activeBodyPart ? (
-            <Animated.View
-              style={[
-                styles.tooltip,
-                {
-                  left: tooltipPosition.x - 75,
-                  top: tooltipPosition.y,
-                  transform: [{ scale: pulseAnim }],
-                  // Make the tooltip wider for group selections
-                  width: activeBodyPart === 'Upper Body' || activeBodyPart === 'Lower Body' ? 200 : 150,
-                }
-              ]}
-            >
-              <Text style={styles.tooltipTitle}>{activeBodyPart}</Text>
-              {activeDescription ? (
-                <Text style={styles.tooltipDescription}>{activeDescription}</Text>
-              ) : null}
-              
-              {/* Add a hint for group selections */}
-              {(activeBodyPart === 'Upper Body' || activeBodyPart === 'Lower Body') && (
-                <Text style={styles.tooltipHint}>
-                  Tap on individual regions for more details
-                </Text>
-              )}
-            </Animated.View>
-          ) : null}
-
+  <Animated.View
+    style={[
+      styles.tooltip,
+      {
+        left: tooltipPosition.x - 75,
+        top: tooltipPosition.y,
+        transform: [{ scale: pulseAnim }],
+        width: activeBodyPart === 'Upper Body' || activeBodyPart === 'Lower Body' ? 200 : 150,
+      }
+    ]}
+  >
+    {/* Make the tooltip content touchable, not the whole tooltip */}
+    <TouchableOpacity
+      onPress={handleTooltipPress}
+      activeOpacity={0.8}
+      style={{ width: '100%' }}
+    >
+      <Text style={styles.tooltipTitle}>{activeBodyPart}</Text>
+      {activeDescription ? (
+        <Text style={styles.tooltipDescription}>{activeDescription}</Text>
+      ) : null}
+      
+      {(activeBodyPart === 'Upper Body' || activeBodyPart === 'Lower Body') && (
+        <Text style={styles.tooltipHint}>
+          Tap on individual regions for more details
+        </Text>
+      )}
+    </TouchableOpacity>
+  </Animated.View>
+) : null}
                 {/* Overlay buttons for upper and lower body selection */}
           <View style={styles.overlayButtonsContainer}>
             <TouchableOpacity 
@@ -1163,8 +1227,53 @@ if (hasPermission === false) {
       <Text style={styles.instructions}>
         Tap on highlighted regions to identify and learn about body parts
       </Text>
+    
+     {/* Transparent Exercise Type Selection Dialog */}
+     // Update your Modal component styles to match the tooltip appearance
+<Modal
+  transparent={true}
+  visible={showDialog}
+  animationType="fade"
+  onRequestClose={() => setShowDialog(false)}
+>
+  <TouchableWithoutFeedback onPress={() => setShowDialog(false)}>
+    <View style={styles.modalOverlay}>
+      <TouchableWithoutFeedback>
+        <View style={styles.dialogContainer}>
+          <Text style={styles.dialogTitle}>{selectedRegion}</Text>
+          <Text style={styles.dialogSubtitle}>Select exercise type:</Text>
+          
+          <View style={styles.buttonContainer}>
+            <TouchableOpacity
+              style={[styles.dialogButton, styles.freeWeightButton]}
+              onPress={() => handleExerciseTypeSelect(selectedRegion, 'Free Weight')}
+            >
+              <Text style={styles.dialogButtonText}>Free Weight</Text>
+            </TouchableOpacity>
+            
+            <TouchableOpacity
+              style={[styles.dialogButton, styles.machineButton]}
+              onPress={() => handleExerciseTypeSelect(selectedRegion, 'Machine')}
+            >
+              <Text style={styles.dialogButtonText}>Machine</Text>
+            </TouchableOpacity>
+          </View>
+          
+          <TouchableOpacity
+            style={styles.closeButton}
+            onPress={() => setShowDialog(false)}
+          >
+            <Text style={styles.closeButtonText}>Cancel</Text>
+          </TouchableOpacity>
+        </View>
+      </TouchableWithoutFeedback>
+    </View>
+  </TouchableWithoutFeedback>
+</Modal>
     </SafeAreaView>
+    
   );
+ 
 }
 
 const styles = StyleSheet.create({
@@ -1405,6 +1514,100 @@ const styles = StyleSheet.create({
     shadowRadius: 3,
     elevation: 5,
   },
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.5)', // Semi-transparent backdrop
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  dialogContainer: {
+    width: width * 0.8,
+    backgroundColor: 'rgba(0, 0, 0, 0.8)', // Match tooltip's dark background
+    borderRadius: 8, // Match tooltip's rounded corners
+    padding: 15,
+    alignItems: 'center',
+    borderWidth: 2, // Adding border
+    borderColor: 'rgba(255, 255, 255, 0.3)', // Google blue border
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 3 },
+    shadowOpacity: 0.5,
+    shadowRadius: 5,
+    elevation: 10,
+  },
+  dialogTitle: {
+    color: 'white', // White text like tooltip
+    fontWeight: 'bold', 
+    fontSize: 18,
+    marginBottom: 10,
+    textAlign: 'center',
+  },
+  dialogSubtitle: {
+    color: 'white', // White text
+    fontSize: 14,
+    marginBottom: 15,
+    textAlign: 'center',
+  },
+  buttonContainer: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    width: '100%',
+    marginBottom: 15,
+  },
+  dialogButton: {
+    paddingVertical: 10,
+    paddingHorizontal: 15,
+    borderRadius: 20,
+    minWidth: '45%',
+    alignItems: 'center',
+    justifyContent: 'center',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.2,
+    shadowRadius: 1.5,
+    elevation: 2,
+  },
+  freeWeightButton: {
+    backgroundColor: '#4285F4', // Google blue
+  },
+  machineButton: {
+    backgroundColor: '#34A853', // Google green
+  },
+  dialogButtonText: {
+    color: 'white',
+    fontWeight: 'bold',
+    fontSize: 15,
+  },
+  closeButton: {
+    paddingVertical: 8,
+    paddingHorizontal: 15,
+    borderRadius: 15,
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.3)', // Subtle border
+  },
+  closeButtonText: {
+    color: 'rgba(255, 255, 255, 0.8)', // Slightly dimmed white text
+    fontSize: 13,
+  },
+  historyButton: {
+    position: 'absolute',
+    bottom: 50,
+    right: 20,
+    backgroundColor: '#4285F4',
+    width: 60,
+    height: 60,
+    borderRadius: 30,
+    justifyContent: 'center',
+    alignItems: 'center',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 3 },
+    shadowOpacity: 0.3,
+    shadowRadius: 5,
+    elevation: 8,
+    zIndex: 50,
+    borderWidth: 2,
+    borderColor: 'white',
+  },
+  
 });
 
 export default BodyPartDetector;
