@@ -855,9 +855,7 @@ useEffect(() => {
           }]}
           onPress={() => setMode('analysis')}
         >
-          <Text>
             <FontAwesome name="arrow-left" size={24} color="white" />
-          </Text>
         </TouchableOpacity>
         
         {/* Camera controls */}
@@ -866,9 +864,7 @@ useEffect(() => {
             style={[styles.button, styles.captureButton]} 
             onPress={takePicture}
           >
-            <Text>
               <FontAwesome name="camera" size={28} color="white" />
-            </Text>
           </TouchableOpacity>
         </View>
         
@@ -995,8 +991,7 @@ if (hasPermission === false) {
      {/* History button */}
 <TouchableOpacity 
   style={styles.historyButton}
-  onPress={() => router.push('/workout/savedworkouts')}
->
+  onPress={() => router.push('/workout/savedworkouts')}>
   <FontAwesome name="history" size={24} color="white" />
 </TouchableOpacity>
      
@@ -1204,10 +1199,8 @@ if (hasPermission === false) {
     style={[styles.controlButton, styles.cameraButton]} 
     onPress={switchToCamera}
   >
-      <Text style={{ color: 'white', marginRight: 8 }}>
 
-    <FontAwesome name="camera" size={18}  />
-    </Text>
+    <FontAwesome name="camera" size={18} style={{ color: 'white', marginRight: 8 }}  />
     <Text style={styles.controlButtonText}>Camera</Text>
   </TouchableOpacity>
   
@@ -1216,9 +1209,7 @@ if (hasPermission === false) {
     onPress={pickImage}
   >
 
-<Text style={{ color: 'white', marginRight: 8 }}>
-    <FontAwesome name="image" size={18}  />
-    </Text>
+    <FontAwesome name="image" size={18} style={{ color: 'white', marginRight: 8 }}  />
     <Text style={styles.controlButtonText}>Gallery</Text>
   </TouchableOpacity>
 </View>
@@ -1229,7 +1220,7 @@ if (hasPermission === false) {
       </Text>
     
      {/* Transparent Exercise Type Selection Dialog */}
-     // Update your Modal component styles to match the tooltip appearance
+     {/* Update your Modal component styles to match the tooltip appearance */}
 <Modal
   transparent={true}
   visible={showDialog}

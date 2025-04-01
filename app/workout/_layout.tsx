@@ -13,6 +13,7 @@ export default function RegistrationLayout() {
         <Stack.Screen name="mealplans"  options={{ headerShown: false }} />
         <Stack.Screen name="viewmealplan"  options={{ headerShown: false }} />
         <Stack.Screen name="savedworkouts"  options={{ headerShown: false }} />
+        <Stack.Screen name="foodhistory"  options={{ headerShown: false }} />
 
 
 

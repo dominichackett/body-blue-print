@@ -58,7 +58,7 @@ const MainScreen = () => {
            
            <Stack.Screen
              options={{
-               title: 'Body Blue Print',
+               title: 'Home',
                headerShown: true,
              }}
            />

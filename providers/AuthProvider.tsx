@@ -1,4 +1,5 @@
 import React, { createContext, useState, useEffect, ReactNode } from 'react';
+import { WEB3AUTH_CLIENT_ID } from '@env';
 
 import Web3Auth, {  LoginParams } from "@web3auth/react-native-sdk";
 import * as WebBrowser from "expo-web-browser";
@@ -54,7 +55,7 @@ const privateKeyProvider = new EthereumPrivateKeyProvider({
 
 
 const web3auth = new Web3Auth(WebBrowser,SecureStore, {
-  clientId:'BD7Y19ePeIm9VJS-83sl8JsG_CTU0vHzt9zc240Py-6irvQQi8mMcJiwP7mWkH__07fmIIewBmFwWsTlQJbO06I', // Replace with your Client ID
+  clientId:WEB3AUTH_CLIENT_ID,
   network:WEB3AUTH_NETWORK.SAPPHIRE_DEVNET , // Or 'mainnet'
   redirectUrl: 'com.dominichackett.bodyblueprint://tabs', // Custom scheme
   privateKeyProvider:privateKeyProvider
