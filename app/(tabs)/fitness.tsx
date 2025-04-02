@@ -248,7 +248,7 @@ useEffect(() => {
   const setup = async () => {
     try {
       // Initialize TensorFlow.js
-      await tf.ready();
+      /*await tf.ready();
       console.log('TensorFlow.js ready');
       
       // Load the pose detection model
@@ -262,12 +262,12 @@ useEffect(() => {
         detectorConfig
       );
       
-      setModel(detector);
+      setModel(detector);*/
       setIsModelReady(true);
       console.log('Pose detection model loaded');
       
       // Load default image immediately
-      await loadDefaultImage();
+      //await loadDefaultImage();
       
     } catch (error) {
       console.error('Error initializing:', error);
@@ -768,7 +768,7 @@ useEffect(() => {
       // Load default image immediately
       await loadDefaultImage();
       // Initialize TensorFlow.js
-      await tf.ready();
+     /* await tf.ready();
       console.log('TensorFlow.js ready');
       
       // Load the pose detection model
@@ -782,7 +782,7 @@ useEffect(() => {
         detectorConfig
       );
       
-      setModel(detector);
+      setModel(detector);*/
       setIsModelReady(true);
       console.log('Pose detection model loaded');
       

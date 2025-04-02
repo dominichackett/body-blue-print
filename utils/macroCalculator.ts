@@ -3,6 +3,7 @@
  * 
  * This utility provides functions to calculate macronutrient needs based on
  * user biometric data and activity level, as well as BMI calculation.
+ * Supports both metric and imperial measurement systems.
  */
 
 export type Gender = 'male' | 'female' | 'other';
@@ -16,13 +17,16 @@ export type ActivityLevel =
 
 export type Goal = 'lose' | 'maintain' | 'gain';
 
+export type UnitSystem = 'metric' | 'imperial';
+
 export interface UserBioData {
-  height: number;      // in cm
-  weight: number;      // in kg
+  height: number;      // in cm (metric) or inches (imperial)
+  weight: number;      // in kg (metric) or pounds (imperial)
   age: number;         // in years
   gender: Gender;
   activityLevel: ActivityLevel;
   goal: Goal;
+  unitSystem: UnitSystem;
 }
 
 export interface MacroResults {
@@ -33,14 +37,33 @@ export interface MacroResults {
 }
 
 /**
- * Calculate Body Mass Index (BMI)
- * BMI = weight(kg) / height(m)²
+ * Convert height from imperial to metric if needed
  */
-export function calculateBMI(height: number, weight: number): number {
-  // Convert height from cm to meters
-  const heightInMeters = height / 100;
-  // Calculate BMI (weight in kg / height in meters squared)
-  return Number((weight / (heightInMeters * heightInMeters)).toFixed(1));
+export function normalizeHeight(height: number, unitSystem: UnitSystem): number {
+  // If imperial, convert inches to cm
+  return unitSystem === 'imperial' ? height * 2.54 : height;
+}
+
+/**
+ * Convert weight from imperial to metric if needed
+ */
+export function normalizeWeight(weight: number, unitSystem: UnitSystem): number {
+  // If imperial, convert pounds to kg
+  return unitSystem === 'imperial' ? weight * 0.453592 : weight;
+}
+
+/**
+ * Calculate Body Mass Index (BMI)
+ */
+export function calculateBMI(height: number, weight: number, unitSystem: UnitSystem): number {
+  if (unitSystem === 'imperial') {
+    // Imperial BMI formula: (weight in pounds × 703) ÷ (height in inches)²
+    return Number(((weight * 703) / (height * height)).toFixed(1));
+  } else {
+    // Metric BMI formula: weight(kg) / height(m)²
+    const heightInMeters = height / 100;
+    return Number((weight / (heightInMeters * heightInMeters)).toFixed(1));
+  }
 }
 
 /**
@@ -61,9 +84,13 @@ export function getBMICategory(bmi: number): string {
 /**
  * Calculate Basal Metabolic Rate (BMR) using the Mifflin-St Jeor Equation
  */
-export function calculateBMR(height: number, weight: number, age: number, gender: Gender): number {
+export function calculateBMR(height: number, weight: number, age: number, gender: Gender, unitSystem: UnitSystem): number {
+  // Convert to metric if needed for the calculation
+  const heightInCm = normalizeHeight(height, unitSystem);
+  const weightInKg = normalizeWeight(weight, unitSystem);
+  
   // Mifflin-St Jeor Equation
-  const bmr = 10 * weight + 6.25 * height - 5 * age;
+  const bmr = 10 * weightInKg + 6.25 * heightInCm - 5 * age;
   return gender === 'male' ? bmr + 5 : bmr - 161;
 }
 
@@ -100,7 +127,10 @@ export function adjustCaloriesForGoal(tdee: number, goal: Goal): number {
 /**
  * Calculate macronutrients based on adjusted calories
  */
-export function calculateMacros(calories: number, weight: number, goal: Goal): MacroResults {
+export function calculateMacros(calories: number, weight: number, goal: Goal, unitSystem: UnitSystem): MacroResults {
+  // Convert to kg if using imperial
+  const weightInKg = normalizeWeight(weight, unitSystem);
+  
   let protein = 0;
   let fat = 0;
   let carbs = 0;
@@ -108,14 +138,14 @@ export function calculateMacros(calories: number, weight: number, goal: Goal): M
   // Protein calculation based on goal and weight
   switch (goal) {
     case 'lose':
-      protein = weight * 2.2; // Higher protein for weight loss (2.2g per kg)
+      protein = weightInKg * 2.2; // Higher protein for weight loss (2.2g per kg)
       break;
     case 'gain':
-      protein = weight * 1.8; // Moderate protein for muscle gain (1.8g per kg)
+      protein = weightInKg * 1.8; // Moderate protein for muscle gain (1.8g per kg)
       break;
     case 'maintain':
     default:
-      protein = weight * 1.6; // Moderate protein for maintenance (1.6g per kg)
+      protein = weightInKg * 1.6; // Moderate protein for maintenance (1.6g per kg)
       break;
   }
   
@@ -139,8 +169,37 @@ export function calculateMacros(calories: number, weight: number, goal: Goal): M
  * Main function to calculate all macros based on user data
  */
 export function calculateAllMacros(userData: UserBioData): MacroResults {
-  const bmr = calculateBMR(userData.height, userData.weight, userData.age, userData.gender);
+  const bmr = calculateBMR(
+    userData.height, 
+    userData.weight, 
+    userData.age, 
+    userData.gender, 
+    userData.unitSystem
+  );
   const tdee = calculateTDEE(bmr, userData.activityLevel);
   const adjustedCalories = adjustCaloriesForGoal(tdee, userData.goal);
-  return calculateMacros(adjustedCalories, userData.weight, userData.goal);
+  return calculateMacros(adjustedCalories, userData.weight, userData.goal, userData.unitSystem);
+}
+
+/**
+ * Helper function to format weight display based on unit system
+ */
+export function formatWeight(weight: number, unitSystem: UnitSystem): string {
+  return unitSystem === 'metric' 
+    ? `${weight} kg` 
+    : `${weight} lbs`;
+}
+
+/**
+ * Helper function to format height display based on unit system
+ */
+export function formatHeight(height: number, unitSystem: UnitSystem): string {
+  if (unitSystem === 'metric') {
+    return `${height} cm`;
+  } else {
+    // Convert inches to feet and inches for display
+    const feet = Math.floor(height / 12);
+    const inches = Math.round(height % 12);
+    return `${feet}'${inches}"`;
+  }
 }

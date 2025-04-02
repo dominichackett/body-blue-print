@@ -12,11 +12,10 @@ import { FormInput } from '@/components/FormInput';
 import { SelectionCard } from '@/components/SelectionCard';
 import { ProgressIndicator } from '@/components/ProgressIndicator';
 import { useRegistration } from '@/contexts/RegistrationContext';
-import { Gender } from '@/utils/macroCalculator';
+import { Gender, UnitSystem } from '@/utils/macroCalculator';
 import { useColorScheme } from '@/hooks/useColorScheme';
 
 const REGISTRATION_STEPS = [
-  
   'Personal Info',
   'Activity',
   'Goals',
@@ -36,7 +35,7 @@ export default function PersonalInfoScreen() {
     gender: '',
   });
   
-  // Validate form fields
+  // Validate form fields based on unit system
   const validateForm = () => {
     const newErrors = {
       height: '',
@@ -45,16 +44,30 @@ export default function PersonalInfoScreen() {
       gender: '',
     };
     
+    // Validate height based on unit system
     if (!userData.height) {
       newErrors.height = 'Height is required';
-    } else if (userData.height < 100 || userData.height > 250) {
-      newErrors.height = 'Height should be between 100-250 cm';
+    } else if (userData.unitSystem === 'metric') {
+      if (userData.height < 100 || userData.height > 250) {
+        newErrors.height = 'Height should be between 100-250 cm';
+      }
+    } else { // imperial
+      if (userData.height < 36 || userData.height > 96) {
+        newErrors.height = 'Height should be between 3\'0" and 8\'0"';
+      }
     }
     
+    // Validate weight based on unit system
     if (!userData.weight) {
       newErrors.weight = 'Weight is required';
-    } else if (userData.weight < 30 || userData.weight > 300) {
-      newErrors.weight = 'Weight should be between 30-300 kg';
+    } else if (userData.unitSystem === 'metric') {
+      if (userData.weight < 30 || userData.weight > 300) {
+        newErrors.weight = 'Weight should be between 30-300 kg';
+      }
+    } else { // imperial
+      if (userData.weight < 66 || userData.weight > 660) {
+        newErrors.weight = 'Weight should be between 66-660 lbs';
+      }
     }
     
     if (!userData.age) {
@@ -87,6 +100,42 @@ export default function PersonalInfoScreen() {
   
   const handleSelectGender = (gender: Gender) => {
     updateUserData({ gender });
+  };
+
+  const handleSelectUnitSystem = (unitSystem: UnitSystem) => {
+    // Convert values when switching unit systems
+    let newHeight = userData.height;
+    let newWeight = userData.weight;
+    
+    if (unitSystem === 'imperial' && userData.unitSystem === 'metric') {
+      // Convert from metric to imperial
+      newHeight = Math.round(userData.height / 2.54); // cm to inches
+      newWeight = Math.round(userData.weight * 2.20462); // kg to lbs
+    } else if (unitSystem === 'metric' && userData.unitSystem === 'imperial') {
+      // Convert from imperial to metric
+      newHeight = Math.round(userData.height * 2.54); // inches to cm
+      newWeight = Math.round(userData.weight / 2.20462); // lbs to kg
+    }
+    
+    updateUserData({ 
+      unitSystem,
+      height: newHeight,
+      weight: newWeight 
+    });
+  };
+
+  // Get appropriate height and weight units
+  const heightUnit = userData.unitSystem === 'metric' ? 'cm' : 'in';
+  const weightUnit = userData.unitSystem === 'metric' ? 'kg' : 'lbs';
+
+  // Convert height to feet and inches for display purposes
+  const getHeightDisplay = () => {
+    if (userData.unitSystem === 'imperial' && userData.height) {
+      const feet = Math.floor(userData.height / 12);
+      const inches = userData.height % 12;
+      return `${feet}'${inches}"`;
+    }
+    return userData.height.toString();
   };
 
   return (
@@ -140,32 +189,101 @@ export default function PersonalInfoScreen() {
                 We need some basic information to calculate your personalized macros.
               </ThemedText>
               
-              <View style={styles.form}>
-                <FormInput
-                  label="Height"
-                  value={userData.height.toString()}
-                  onChangeText={(text) => updateUserData({ height: text ? Number(text) : 0 })}
-                  placeholder="Enter your height"
-                  keyboardType="numeric"
-                  suffix="cm"
-                  isRequired
-                  error={errors.height}
-                  min={100}
-                  max={250}
-                  style={styles.input}
+              {/* Unit System Selection */}
+              <ThemedText style={styles.sectionTitle}>Units</ThemedText>
+              <View style={styles.unitOptions}>
+                <SelectionCard
+                  title="Metric"
+                  subtitle="cm, kg"
+                  icon="ruler"
+                  isSelected={userData.unitSystem === 'metric'}
+                  onSelect={() => handleSelectUnitSystem('metric')}
+                  style={styles.unitCard}
+                  selectedColor="#3b82f6"
                 />
+                
+                <SelectionCard
+                  title="Imperial"
+                  subtitle="in, lbs"
+                  icon="scale"
+                  isSelected={userData.unitSystem === 'imperial'}
+                  onSelect={() => handleSelectUnitSystem('imperial')}
+                  style={styles.unitCard}
+                  selectedColor="#3b82f6"
+                />
+              </View>
+              
+              <View style={styles.form}>
+                {/* For Imperial system, we'll use two separate inputs for feet and inches */}
+                {userData.unitSystem === 'imperial' ? (
+                  <View style={styles.heightInputContainer}>
+                    <View style={styles.feetInputContainer}>
+                      <FormInput
+                        label="Height (feet)"
+                        value={Math.floor(userData.height / 12).toString()}
+                        onChangeText={(text) => {
+                          const feet = text ? parseInt(text, 10) : 0;
+                          const inches = userData.height % 12;
+                          updateUserData({ height: (feet * 12) + inches });
+                        }}
+                        placeholder="Feet"
+                        keyboardType="numeric"
+                        suffix="ft"
+                        isRequired
+                        error={errors.height}
+                        min={3}
+                        max={8}
+                        style={styles.feetInput}
+                      />
+                    </View>
+                    <View style={styles.inchesInputContainer}>
+                      <FormInput
+                        label="Inches"
+                        value={(userData.height % 12).toString()}
+                        onChangeText={(text) => {
+                          const inches = text ? parseInt(text, 10) : 0;
+                          const feet = Math.floor(userData.height / 12);
+                          updateUserData({ height: (feet * 12) + inches });
+                        }}
+                        placeholder="Inches"
+                        keyboardType="numeric"
+                        suffix="in"
+                        min={0}
+                        max={11}
+                        style={styles.inchesInput}
+                      />
+                    </View>
+                  </View>
+                ) : (
+                  <FormInput
+                    label="Height"
+                    value={userData.height.toString()}
+                    onChangeText={(text) => {
+                      const numericValue = text.replace(/[^0-9]/g, '');
+                      updateUserData({ height: numericValue ? Number(numericValue) : 0 });
+                    }}
+                    placeholder="Enter your height in cm"
+                    keyboardType="numeric"
+                    suffix="cm"
+                    isRequired
+                    error={errors.height}
+                    min={100}
+                    max={250}
+                    style={styles.input}
+                  />
+                )}
                 
                 <FormInput
                   label="Weight"
                   value={userData.weight.toString()}
                   onChangeText={(text) => updateUserData({ weight: text ? Number(text) : 0 })}
-                  placeholder="Enter your weight"
+                  placeholder={`Enter your weight in ${weightUnit}`}
                   keyboardType="numeric"
-                  suffix="kg"
+                  suffix={weightUnit}
                   isRequired
                   error={errors.weight}
-                  min={30}
-                  max={300}
+                  min={userData.unitSystem === 'metric' ? 30 : 66}
+                  max={userData.unitSystem === 'metric' ? 300 : 660}
                   style={styles.input}
                 />
                 
@@ -228,8 +346,6 @@ export default function PersonalInfoScreen() {
             style={styles.footerBlur}
           >
             <View style={styles.buttonRow}>
-              
-              
               <ActionButton
                 title="Continue"
                 onPress={handleContinue}
@@ -248,6 +364,25 @@ export default function PersonalInfoScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
+  },
+  heightInputContainer: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    marginBottom: 20,
+  },
+  feetInputContainer: {
+    flex: 1,
+    marginRight: 8,
+  },
+  inchesInputContainer: {
+    flex: 1,
+    marginLeft: 8,
+  },
+  feetInput: {
+    marginBottom: 0,
+  },
+  inchesInput: {
+    marginBottom: 0,
   },
   headerSection: {
     paddingTop: 0,
@@ -306,6 +441,22 @@ const styles = StyleSheet.create({
     fontSize: 14,
     marginBottom: 12,
   },
+  unitOptions: {
+    flexDirection: 'column',
+    width: '100%',
+    marginBottom: 16,
+  },
+  unitCard: {
+    width: '100%',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.15,
+    shadowRadius: 6,
+    elevation: 4,
+    borderWidth: 1,
+    borderColor: 'rgba(0,0,0,0.1)',
+    minHeight: 60,
+  },
   genderOptions: {
     flexDirection: 'column',  // Changed to column for vertical layout
     width: '100%',
@@ -334,7 +485,7 @@ const styles = StyleSheet.create({
   buttonRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-   padding: 16,
+    padding: 16,
   },
   backButton: {
     flex: 1,

@@ -63,6 +63,13 @@ export default function TabLayout() {
           tabBarIcon: ({ color }) => <IconSymbol size={28} name="calories" color={color} />,
         }}
       />
+      <Tabs.Screen
+        name="settings"
+        options={{
+          title: 'Share',
+          tabBarIcon: ({ color }) => <IconSymbol size={28} name="share" color={color} />,
+        }}
+      />
 
 
     </Tabs>

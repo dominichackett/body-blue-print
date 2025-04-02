@@ -328,7 +328,7 @@ const FoodCalorieDetector = ( ) => {
               style={styles.resetButton} 
               onPress={resetCamera}
             >
-              <Text style={styles.buttonText}>Take Another Photo</Text>
+              <Text style={styles.buttonText}>Take Photo</Text>
             </TouchableOpacity>
 
             <TouchableOpacity 
@@ -368,7 +368,7 @@ const styles = StyleSheet.create({
   historyButton: {
     position: 'absolute',
     right: 16,
-    backgroundColor: 'rgba(255, 255, 255, 0.3)',
+    backgroundColor: 'rgba(255, 0, 0, 0.9)',
     paddingVertical: 6,
     paddingHorizontal: 12,
     borderRadius: 16,

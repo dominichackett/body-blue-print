@@ -57,7 +57,7 @@ const privateKeyProvider = new EthereumPrivateKeyProvider({
 const web3auth = new Web3Auth(WebBrowser,SecureStore, {
   clientId:WEB3AUTH_CLIENT_ID,
   network:WEB3AUTH_NETWORK.SAPPHIRE_DEVNET , // Or 'mainnet'
-  redirectUrl: 'com.dominichackett.bodyblueprint://tabs', // Custom scheme
+  redirectUrl: 'com.dominichackett.bodyblueprint://(tabs)/', // Custom scheme
   privateKeyProvider:privateKeyProvider
 });
 
@@ -73,11 +73,11 @@ const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         console.log('Initializing Web3Auth...');
         await web3auth.init();
         console.log('Web3Auth initialized, checking connection status...');
-        
+        if(web3auth?.ready)
         // Check if web3auth is properly initialized and has connected property
-        if (web3auth && typeof web3auth.connected === 'boolean') {
-          if (web3auth.connected) {
-            const userInfo = await web3auth.userInfo() as Web3AuthUser; // userInfo might also be async
+        if (web3auth && typeof web3auth?.connected === 'boolean') {
+          if (web3auth?.connected) {
+            const userInfo =  web3auth.userInfo() as Web3AuthUser; // userInfo might also be async
             setUser(userInfo);
             console.log('User info:', userInfo);
           } else {
@@ -97,9 +97,8 @@ const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
 
   const login = async (params: LoginParams) => {
     try {
-      await web3auth.init()
       await web3auth.login(params);
-      const userInfo =  web3auth.userInfo;
+      const userInfo =  web3auth.userInfo() as Web3AuthUser;
       setUser(userInfo);
     } catch (error) {
       console.error('Login failed:', error);

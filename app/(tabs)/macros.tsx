@@ -10,7 +10,12 @@ import { ProgressIndicator } from '@/components/ProgressIndicator';
 import { useRegistration } from '@/contexts/RegistrationContext';
 import { Colors } from '@/constants/Colors';
 import { useColorScheme } from '@/hooks/useColorScheme';
-import { calculateBMI, getBMICategory } from '@/utils/macroCalculator'; // Import BMI functions
+import { 
+  calculateBMI, 
+  getBMICategory, 
+  formatHeight, 
+  formatWeight 
+} from '@/utils/macroCalculator'; // Import utility functions
 
 const REGISTRATION_STEPS = [
   'Welcome',
@@ -25,14 +30,18 @@ export default function ResultsScreen() {
   const colorScheme = useColorScheme();
   const tintColor = Colors[colorScheme ?? 'light'].tint;
 
-   const handleGenerateMacros = () => {
-      prevStep();
-      router.push('/registration/personal-info');
-    };
+  const handleGenerateMacros = () => {
+    prevStep();
+    router.push('/registration/personal-info');
+  };
   
   // Calculate BMI
-  const bmi = calculateBMI(userData.height, userData.weight);
+  const bmi = calculateBMI(userData.height, userData.weight, userData.unitSystem);
   const bmiCategory = getBMICategory(bmi);
+  
+  // Format user bio data
+  const formattedHeight = formatHeight(userData.height, userData.unitSystem);
+  const formattedWeight = formatWeight(userData.weight, userData.unitSystem);
   
   // Get color based on BMI category
   const getBmiColor = () => {
@@ -58,6 +67,26 @@ export default function ResultsScreen() {
     return ((clampedBmi - minBmi) / (maxBmi - minBmi)) * 100;
   };
   
+  const getActivityLevelLabel = () => {
+    switch (userData.activityLevel) {
+      case 'sedentary': return 'Sedentary (little to no exercise)';
+      case 'light': return 'Light (exercise 1-3 days/week)';
+      case 'moderate': return 'Moderate (exercise 3-5 days/week)';
+      case 'active': return 'Active (exercise 6-7 days/week)';
+      case 'very_active': return 'Very Active (intense exercise daily)';
+      default: return 'Not specified';
+    }
+  };
+  
+  const getGoalLabel = () => {
+    switch (userData.goal) {
+      case 'lose': return 'Weight Loss';
+      case 'maintain': return 'Maintenance';
+      case 'gain': return 'Muscle Gain';
+      default: return 'Not specified';
+    }
+  };
+  
   const handleBack = () => {
     prevStep();
     router.push('/registration/goals');
@@ -78,12 +107,12 @@ export default function ResultsScreen() {
     return (
       <ThemedView style={[styles.container, styles.centered]}>
         <ActionButton
-                       title="Generate Macros"
-                       onPress={handleGenerateMacros}
-                       icon="arrow.right"
-                       style={styles.dashboardButton}
-                       textStyle={styles.buttonText}
-                     />
+          title="Generate Macros"
+          onPress={handleGenerateMacros}
+          icon="arrow.right"
+          style={styles.dashboardButton}
+          textStyle={styles.buttonText}
+        />
       </ThemedView>
     );
   }
@@ -94,11 +123,10 @@ export default function ResultsScreen() {
       
       <Stack.Screen
         options={{
-          title: 'Your Macros',
+          title: 'Macros',
           headerShown: true,
         }}
       />
-      
       
       <ScrollView 
         style={styles.scrollView}
@@ -112,8 +140,6 @@ export default function ResultsScreen() {
         <ThemedText style={styles.description}>
           Based on your information, here are your recommended daily macronutrient targets.
         </ThemedText>
-        
-      
         
         <View style={styles.summaryCard}>
           <View style={styles.summaryHeader}>
@@ -177,8 +203,8 @@ export default function ResultsScreen() {
           </ThemedText>
         </View>
 
-          {/* BMI Card */}
-          <View style={styles.bmiCard}>
+        {/* BMI Card */}
+        <View style={styles.bmiCard}>
           <ThemedText style={styles.bmiTitle}>Your Body Mass Index (BMI)</ThemedText>
           
           <View style={styles.bmiValueContainer}>
@@ -219,6 +245,61 @@ export default function ResultsScreen() {
           </ThemedText>
         </View>
         
+        {/* User Bio Data Card */}
+        <View style={styles.bioCard}>
+          <ThemedText style={styles.infoTitle}>Your Profile</ThemedText>
+          
+          <View style={styles.bioItemContainer}>
+            <View style={styles.bioItem}>
+              <ThemedText style={styles.bioLabel}>Height:</ThemedText>
+              <ThemedText style={styles.bioValue}>{formattedHeight}</ThemedText>
+            </View>
+            
+            <View style={styles.bioItem}>
+              <ThemedText style={styles.bioLabel}>Weight:</ThemedText>
+              <ThemedText style={styles.bioValue}>{formattedWeight}</ThemedText>
+            </View>
+            
+            <View style={styles.bioItem}>
+              <ThemedText style={styles.bioLabel}>Age:</ThemedText>
+              <ThemedText style={styles.bioValue}>{userData.age} years</ThemedText>
+            </View>
+            
+            <View style={styles.bioItem}>
+              <ThemedText style={styles.bioLabel}>Gender:</ThemedText>
+              <ThemedText style={styles.bioValue}>
+                {userData.gender === 'male' ? 'Male' : 
+                 userData.gender === 'female' ? 'Female' : 'Other'}
+              </ThemedText>
+            </View>
+            
+            <View style={styles.bioItem}>
+              <ThemedText style={styles.bioLabel}>Activity Level:</ThemedText>
+              <ThemedText style={styles.bioValue}>{getActivityLevelLabel()}</ThemedText>
+            </View>
+            
+            <View style={styles.bioItem}>
+              <ThemedText style={styles.bioLabel}>Goal:</ThemedText>
+              <ThemedText style={styles.bioValue}>{getGoalLabel()}</ThemedText>
+            </View>
+            
+            <View style={styles.bioItem}>
+              <ThemedText style={styles.bioLabel}>Unit System:</ThemedText>
+              <ThemedText style={styles.bioValue}>
+                {userData.unitSystem === 'metric' ? 'Metric (cm, kg)' : 'Imperial (in, lbs)'}
+              </ThemedText>
+            </View>
+          </View>
+          
+          <ActionButton
+            title="Edit Profile"
+            onPress={handleGenerateMacros}
+            variant="outline"
+            icon="pencil"
+            style={styles.editButton}
+          />
+        </View>
+        
         <View style={styles.nextStepsCard}>
           <ThemedText style={styles.infoTitle}>Next Steps</ThemedText>
           <ThemedText style={styles.infoText}>
@@ -234,10 +315,8 @@ export default function ResultsScreen() {
       </ScrollView>
       
       <View style={styles.footer}>
-       
-        
         <ActionButton
-          title="Generate Macros"
+          title="Recalculate Macros"
           onPress={handleGenerateMacros}
           icon="arrow.right"
           fullWidth
@@ -303,6 +382,40 @@ const styles = StyleSheet.create({
     fontSize: 16,
     marginBottom: 24,
     opacity: 0.8,
+  },
+  // Bio Card Styles
+  bioCard: {
+    borderRadius: 2,
+    padding: 24,
+    marginBottom: 28,
+    backgroundColor: 'rgba(0, 0, 0, 0.05)',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.1,
+    shadowRadius: 8,
+    elevation: 5,
+  },
+  bioItemContainer: {
+    marginBottom: 16,
+  },
+  bioItem: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    paddingVertical: 8,
+    borderBottomWidth: 1,
+    borderBottomColor: 'rgba(0, 0, 0, 0.05)',
+  },
+  bioLabel: {
+    fontSize: 15,
+    fontWeight: '600',
+    opacity: 0.8,
+  },
+  bioValue: {
+    fontSize: 15,
+    fontWeight: '500',
+  },
+  editButton: {
+    marginTop: 16,
   },
   // BMI Card Styles
   bmiCard: {

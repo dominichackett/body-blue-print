@@ -69,6 +69,7 @@
     "react-native-svg": "^15.8.0",
     "react-native-web": "~0.19.13",
     "react-native-webview": "^13.12.5",
+    "react-native-youtube-iframe": "^2.3.0",
     "readable-stream": "^4.7.0",
     "text-encoding": "^0.7.0"
   },

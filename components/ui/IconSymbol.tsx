@@ -26,7 +26,10 @@ const MAPPING = {
   'female':'face-4',
   'other':'face-retouching-natural',
   'exercise':'directions-run',
-  'calories':'calculate'
+  'calories':'calculate',
+  'scale':'scale',
+  'ruler':'straighten',
+  'share':'share'
 } as Partial<
   Record<
     import('expo-symbols').SymbolViewProps['name'],

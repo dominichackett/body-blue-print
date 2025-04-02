@@ -1,5 +1,5 @@
-import React from 'react';
-import { StyleSheet, View, ScrollView, Animated } from 'react-native';
+import React, { useEffect, useState } from 'react';
+import { StyleSheet, View, ScrollView, Animated, ActivityIndicator, Alert } from 'react-native';
 import { Stack, router } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 
@@ -10,7 +10,7 @@ import { ProgressIndicator } from '@/components/ProgressIndicator';
 import { useRegistration } from '@/contexts/RegistrationContext';
 import { Colors } from '@/constants/Colors';
 import { useColorScheme } from '@/hooks/useColorScheme';
-import { calculateBMI, getBMICategory } from '@/utils/macroCalculator'; // Import BMI functions
+import { calculateBMI, getBMICategory, formatWeight, formatHeight } from '@/utils/macroCalculator'; // Import utility functions
 
 const REGISTRATION_STEPS = [
   'Personal Info',
@@ -20,13 +20,35 @@ const REGISTRATION_STEPS = [
 ];
 
 export default function ResultsScreen() {
-  const { userData, macroResults, prevStep, resetRegistration } = useRegistration();
+  const { 
+    userData, 
+    macroResults, 
+    prevStep, 
+    resetRegistration, 
+    calculateMacros,
+    saveUserBio,
+    saveResults
+  } = useRegistration();
+  
   const colorScheme = useColorScheme();
   const tintColor = Colors[colorScheme ?? 'light'].tint;
   
+  const [isSaving, setIsSaving] = useState(false);
+  
+  // Ensure we have calculated results
+  useEffect(() => {
+    if (!macroResults) {
+      calculateMacros();
+    }
+  }, [calculateMacros, macroResults]);
+  
   // Calculate BMI
-  const bmi = calculateBMI(userData.height, userData.weight);
+  const bmi = calculateBMI(userData.height, userData.weight, userData.unitSystem);
   const bmiCategory = getBMICategory(bmi);
+  
+  // Format height and weight based on unit system
+  const formattedHeight = formatHeight(userData.height, userData.unitSystem);
+  const formattedWeight = formatWeight(userData.weight, userData.unitSystem);
   
   // Get color based on BMI category
   const getBmiColor = () => {
@@ -62,17 +84,40 @@ export default function ResultsScreen() {
     router.push('/registration/welcome');
   };
   
-  const handleContinue = () => {
-    // In a real app, this would navigate to the main dashboard
-    // For now, we'll just go back to the welcome screen
-    router.replace('/(tabs)/macros');
+  const handleSaveMacros = async () => {
+    if (!macroResults) {
+      Alert.alert('Error', 'No macro results to save');
+      return;
+    }
     
+    setIsSaving(true);
+    
+    try {
+      // Save both the user's bio data and the calculated results
+      await Promise.all([
+        saveUserBio(),
+        saveResults(macroResults)
+      ]);
+      
+      // Show success message
+      Alert.alert(
+        'Success',
+        'Your macros have been saved successfully!',
+        [{ text: 'OK', onPress: () => router.replace('/(tabs)/macros') }]
+      );
+    } catch (error) {
+      console.error('Error saving data:', error);
+      Alert.alert('Error', 'There was a problem saving your data. Please try again.');
+    } finally {
+      setIsSaving(false);
+    }
   };
   
   if (!macroResults) {
     return (
       <ThemedView style={[styles.container, styles.centered]}>
-        <ThemedText>Loading your results...</ThemedText>
+        <ActivityIndicator size="large" color={tintColor} />
+        <ThemedText style={{ marginTop: 16 }}>Calculating your macros...</ThemedText>
       </ThemedView>
     );
   }
@@ -100,10 +145,8 @@ export default function ResultsScreen() {
         </ThemedText>
         
         <ThemedText style={styles.description}>
-          Based on your information, here are your recommended daily macronutrient targets.
+          Based on your information ({formattedHeight}, {formattedWeight}), here are your recommended daily macronutrient targets.
         </ThemedText>
-        
-      
         
         <View style={styles.summaryCard}>
           <View style={styles.summaryHeader}>
@@ -167,8 +210,8 @@ export default function ResultsScreen() {
           </ThemedText>
         </View>
 
-          {/* BMI Card */}
-          <View style={styles.bmiCard}>
+        {/* BMI Card */}
+        <View style={styles.bmiCard}>
           <ThemedText style={styles.bmiTitle}>Your Body Mass Index (BMI)</ThemedText>
           
           <View style={styles.bmiValueContainer}>
@@ -232,9 +275,10 @@ export default function ResultsScreen() {
         />
         
         <ActionButton
-          title="Save Macros"
-          onPress={handleContinue}
-          icon="arrow.right"
+          title={isSaving ? "Saving..." : "Save Macros"}
+          onPress={handleSaveMacros}
+          icon={!isSaving ? "arrow.right" : undefined}
+          disabled={isSaving}
           fullWidth
           style={styles.dashboardButton}
         />
