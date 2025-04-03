@@ -287,6 +287,7 @@ const ExerciseAIScreen = () => {
         }
       };
 
+      console.log(prompt)
       // Call the Gemini API
       console.log("Calling Gemini API...");
       const geminiResponse = await fetch(`${GEMINI_API_URL}?key=${GEMINI_API_KEY}`, {

@@ -37,6 +37,7 @@ const ViewMealPlanScreen = () => {
         const foundPlan = savedPlans.find(plan => plan.id === planId);
         
         if (foundPlan) {
+          console.log("Found plan:", foundPlan);
           setMealPlan(foundPlan);
         } else {
           // Plan not found (may have been deleted)
@@ -53,13 +54,21 @@ const ViewMealPlanScreen = () => {
   
   // Render daily summary component
   const renderDailySummary = (day) => {
+    if (!day || !day.meals) {
+      return (
+        <View style={styles.errorContainer}>
+          <Text style={styles.errorText}>Unable to display meal information</Text>
+        </View>
+      );
+    }
+    
     // Calculate total calories for the day
-    const totalCalories = day.meals.reduce((sum, meal) => sum + meal.calories, 0);
+    const totalCalories = day.meals.reduce((sum, meal) => sum + (meal.calories || 0), 0);
     
     // Calculate total macros
-    const totalProtein = day.meals.reduce((sum, meal) => sum + meal.protein, 0);
-    const totalCarbs = day.meals.reduce((sum, meal) => sum + meal.carbs, 0);
-    const totalFat = day.meals.reduce((sum, meal) => sum + meal.fat, 0);
+    const totalProtein = day.meals.reduce((sum, meal) => sum + (meal.protein || 0), 0);
+    const totalCarbs = day.meals.reduce((sum, meal) => sum + (meal.carbs || 0), 0);
+    const totalFat = day.meals.reduce((sum, meal) => sum + (meal.fat || 0), 0);
     
     return (
       <View>
@@ -72,15 +81,15 @@ const ViewMealPlanScreen = () => {
         
         <View style={styles.dailySummary}>
           <View style={styles.nutrientItem}>
-            <Text style={styles.nutrientValue}>{totalProtein}g</Text>
+            <Text style={styles.nutrientValue}>{Math.round(totalProtein)}g</Text>
             <Text style={styles.nutrientLabel}>Protein</Text>
           </View>
           <View style={styles.nutrientItem}>
-            <Text style={styles.nutrientValue}>{totalCarbs}g</Text>
+            <Text style={styles.nutrientValue}>{Math.round(totalCarbs)}g</Text>
             <Text style={styles.nutrientLabel}>Carbs</Text>
           </View>
           <View style={styles.nutrientItem}>
-            <Text style={styles.nutrientValue}>{totalFat}g</Text>
+            <Text style={styles.nutrientValue}>{Math.round(totalFat)}g</Text>
             <Text style={styles.nutrientLabel}>Fat</Text>
           </View>
           <View style={styles.nutrientItem}>
@@ -128,11 +137,23 @@ const ViewMealPlanScreen = () => {
     );
   }
   
-  const plan = mealPlan.plan;
+  // Extract the actual meal plan data from the stored object
+  const planData = mealPlan.plan;
   const isWeekly = mealPlan.type === 'weekly';
   
-  // For single day plan, treat it as the only day
-  const currentPlan = isWeekly ? plan.daysOfWeek[selectedDay] : plan;
+  // Determine the current day/plan to display
+  let currentDayData;
+  
+  if (isWeekly && planData && planData.current && planData.current.days && planData.current.days.length > 0) {
+    // For weekly plans, select the current day
+    currentDayData = planData.current.days[selectedDay];
+  } else if (!isWeekly && planData) {
+    // For daily plans, use the entire plan
+    currentDayData = planData;
+  } else {
+    // Handle malformed data
+    currentDayData = null;
+  }
   
   return (
     <SafeAreaView style={styles.container}>
@@ -155,28 +176,28 @@ const ViewMealPlanScreen = () => {
         <View style={styles.mealPlanContainer}>
           <Text style={styles.mealPlanTitle}>{mealPlan.planName}</Text>
           <Text style={styles.mealPlanSubtitle}>
-            {plan.dietType.charAt(0).toUpperCase() + plan.dietType.slice(1)} Diet • Created on {formatDate(mealPlan.dateCreated)}
+            {(planData.current?.dietType || mealPlan.dietType).charAt(0).toUpperCase() + (planData.current?.dietType || mealPlan.dietType).slice(1)} Diet • Created on {formatDate(mealPlan.dateCreated)}
           </Text>
           
-          {isWeekly && (
+          {isWeekly && planData && planData.current && planData.current.days && (
             <View>
               <Text style={styles.sectionTitle}>Weekly Overview</Text>
               <View style={styles.nutritionSummary}>
                 <View style={styles.nutrientItem}>
-                  <Text style={styles.nutrientValue}>{plan.overallNutrition.protein}g</Text>
-                  <Text style={styles.nutrientLabel}>Avg Protein</Text>
+                  <Text style={styles.nutrientValue}>{planData.current.dailyProteinTarget || mealPlan.averageNutrition?.protein || 0}g</Text>
+                  <Text style={styles.nutrientLabel}>Protein Target</Text>
                 </View>
                 <View style={styles.nutrientItem}>
-                  <Text style={styles.nutrientValue}>{plan.overallNutrition.carbs}g</Text>
-                  <Text style={styles.nutrientLabel}>Avg Carbs</Text>
+                  <Text style={styles.nutrientValue}>{planData.current.dailyCarbsTarget || mealPlan.averageNutrition?.carbs || 0}g</Text>
+                  <Text style={styles.nutrientLabel}>Carbs Target</Text>
                 </View>
                 <View style={styles.nutrientItem}>
-                  <Text style={styles.nutrientValue}>{plan.overallNutrition.fat}g</Text>
-                  <Text style={styles.nutrientLabel}>Avg Fat</Text>
+                  <Text style={styles.nutrientValue}>{planData.current.dailyFatTarget || mealPlan.averageNutrition?.fat || 0}g</Text>
+                  <Text style={styles.nutrientLabel}>Fat Target</Text>
                 </View>
                 <View style={styles.nutrientItem}>
-                  <Text style={styles.nutrientValue}>{plan.overallNutrition.fiber}g</Text>
-                  <Text style={styles.nutrientLabel}>Avg Fiber</Text>
+                  <Text style={styles.nutrientValue}>{planData.current.dailyCaloriesTarget || Math.round(mealPlan.averageNutrition?.calories || 0)}</Text>
+                  <Text style={styles.nutrientLabel}>Daily Cal Target</Text>
                 </View>
               </View>
               
@@ -187,7 +208,7 @@ const ViewMealPlanScreen = () => {
                 showsHorizontalScrollIndicator={false}
                 style={styles.dayTabs}
               >
-                {plan.daysOfWeek.map((day, index) => (
+                {planData.current.days.map((day, index) => (
                   <TouchableOpacity
                     key={index}
                     style={[
@@ -202,7 +223,7 @@ const ViewMealPlanScreen = () => {
                         selectedDay === index ? styles.selectedDayTabText : null
                       ]}
                     >
-                      {day.dayOfWeek}
+                      {day.day || `Day ${index + 1}`}
                     </Text>
                   </TouchableOpacity>
                 ))}
@@ -211,41 +232,54 @@ const ViewMealPlanScreen = () => {
           )}
           
           {/* Render daily summary */}
-          {renderDailySummary(currentPlan)}
+          {currentDayData && renderDailySummary(currentDayData)}
           
           {/* Render meals */}
-          <Text style={styles.sectionTitle}>Daily Meals</Text>
-          {currentPlan.meals.map((meal, index) => (
-            <View key={index} style={styles.mealCard}>
-              <View style={styles.mealHeader}>
-                <Text style={styles.mealName}>{meal.name}</Text>
-                <View style={styles.caloriesBadge}>
-                  <Text style={styles.caloriesText}>{meal.calories} cal</Text>
-                </View>
-              </View>
-              
-              <View style={styles.macroRow}>
-                <Text style={styles.macroText}>Protein: {meal.protein}g</Text>
-                <Text style={styles.macroText}>Carbs: {meal.carbs}g</Text>
-                <Text style={styles.macroText}>Fat: {meal.fat}g</Text>
-              </View>
-              
-              {/* Render individual meal items with their calorie counts */}
-              {meal.items && (
-                <View style={styles.mealItemsContainer}>
-                  {meal.items.map((item, itemIndex) => (
-                    <View key={itemIndex} style={styles.mealItem}>
-                      <View style={styles.mealItemHeader}>
-                        <Text style={styles.mealItemName}>{item.name}</Text>
-                        <Text style={styles.mealItemCalories}>{item.calories} cal</Text>
-                      </View>
-                      <Text style={styles.mealItemPreparation}>{item.preparation}</Text>
+          {currentDayData && currentDayData.meals && (
+            <>
+              <Text style={styles.sectionTitle}>Daily Meals</Text>
+              {currentDayData.meals.map((meal, index) => (
+                <View key={index} style={styles.mealCard}>
+                  <View style={styles.mealHeader}>
+                    <Text style={styles.mealName}>{meal.name}</Text>
+                    <View style={styles.caloriesBadge}>
+                      <Text style={styles.caloriesText}>{meal.calories} cal</Text>
                     </View>
-                  ))}
+                  </View>
+                  
+                  <View style={styles.macroRow}>
+                    <Text style={styles.macroText}>Protein: {meal.protein}g</Text>
+                    <Text style={styles.macroText}>Carbs: {meal.carbs}g</Text>
+                    <Text style={styles.macroText}>Fat: {meal.fat}g</Text>
+                  </View>
+                  
+                  {/* Render individual meal items with their calorie counts */}
+                  {meal.items && (
+                    <View style={styles.mealItemsContainer}>
+                      {meal.items.map((item, itemIndex) => (
+                        <View key={itemIndex} style={styles.mealItem}>
+                          <View style={styles.mealItemHeader}>
+                            <Text style={styles.mealItemName}>{item.name}</Text>
+                            <Text style={styles.mealItemCalories}>{item.calories} cal</Text>
+                          </View>
+                          <Text style={styles.mealItemPreparation}>{item.preparation}</Text>
+                        </View>
+                      ))}
+                    </View>
+                  )}
                 </View>
-              )}
+              ))}
+            </>
+          )}
+          
+          {(!currentDayData || !currentDayData.meals) && (
+            <View style={styles.errorContainer}>
+              <FontAwesome name="exclamation-triangle" size={40} color="#EA4335" />
+              <Text style={styles.errorText}>
+                Unable to display meal data. The plan structure may be invalid.
+              </Text>
             </View>
-          ))}
+          )}
         </View>
       </ScrollView>
     </SafeAreaView>
@@ -303,17 +337,20 @@ const styles = StyleSheet.create({
     marginTop: 10,
   },
   errorContainer: {
-    flex: 1,
-    justifyContent: 'center',
     alignItems: 'center',
+    justifyContent: 'center',
     padding: 20,
+    backgroundColor: 'rgba(234, 67, 53, 0.1)',
+    borderRadius: 10,
+    marginVertical: 15,
   },
   errorText: {
-    fontSize: 18,
+    fontSize: 16,
     fontWeight: 'bold',
     color: '#333',
     marginTop: 10,
-    marginBottom: 20,
+    marginBottom: 10,
+    textAlign: 'center',
   },
   goBackButton: {
     backgroundColor: '#4285F4',

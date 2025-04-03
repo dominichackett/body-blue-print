@@ -88,13 +88,24 @@ const MealPlanGeneratorScreen = () => {
     const saveMealPlan = async () => {
       try {
         setIsSaving(true);
-        
+         // Determine which plan is active and its type
+       const currentPlan = weeklyMealPlan.current || mealPlan.current;
+      const planType = weeklyMealPlan.current ? 'weekly' : 'daily';
+    
+      // Calculate nutrition information
+      const { nutritionTotals, nutritionAverages }  = calculateNutrition(currentPlan, planType);
         const planToSave = {
           id: Date.now().toString(),
           dateCreated: new Date().toISOString(),
           planName: `${dietaryPreference.charAt(0).toUpperCase() + dietaryPreference.slice(1)} Plan - ${new Date().toLocaleDateString()}`,
-          plan: weeklyMealPlan || mealPlan,
-          type: weeklyMealPlan ? 'weekly' : 'daily'
+          overallNutrition: nutritionTotals,
+          averageNutrition:nutritionAverages,
+          dietType:dietaryPreference,
+          plan: currentPlan,
+          type: planType,
+          count: planType === 'weekly' 
+          ? (currentPlan.days ? currentPlan.days.length : 0)
+          : (currentPlan.meals ? currentPlan.meals.length : 0)
         };
         
         const updatedSavedPlans = [...savedPlans, planToSave];
@@ -333,7 +344,7 @@ const MealPlanGeneratorScreen = () => {
         
       
         // Use the existing processGeminiResponse function
-        const processedPlan = processGeminiResponse(data, daysPerWeek > 1);
+        const processedPlan = await processGeminiResponse(data);
         console.log("Processed ")
         console.log(JSON.stringify(processedPlan))
         // Set the generated plan
@@ -379,21 +390,21 @@ const MealPlanGeneratorScreen = () => {
           <View style={styles.totalCaloriesSection}>
             <FontAwesome name="fire" size={18} color="#0066cc" style={styles.calorieIcon} />
             <Text style={styles.totalCaloriesText}>
-              Total: {totalCalories} calories
+              Total: {Math.round(totalCalories)} calories
             </Text>
           </View>
           
           <View style={styles.dailySummary}>
             <View style={styles.nutrientItem}>
-              <Text style={styles.nutrientValue}>{totalProtein}g</Text>
+              <Text style={styles.nutrientValue}>{Math.round(totalProtein)}g</Text>
               <Text style={styles.nutrientLabel}>Protein</Text>
             </View>
             <View style={styles.nutrientItem}>
-              <Text style={styles.nutrientValue}>{totalCarbs}g</Text>
+              <Text style={styles.nutrientValue}>{Math.round(totalCarbs)}g</Text>
               <Text style={styles.nutrientLabel}>Carbs</Text>
             </View>
             <View style={styles.nutrientItem}>
-              <Text style={styles.nutrientValue}>{totalFat}g</Text>
+              <Text style={styles.nutrientValue}>{Math.round(totalFat)}g</Text>
               <Text style={styles.nutrientLabel}>Fat</Text>
             </View>
           </View>
@@ -444,7 +455,7 @@ const MealPlanGeneratorScreen = () => {
         <View style={styles.mealPlanContainer}>
           <Text style={styles.mealPlanTitle}>Your Personalized Meal Plan</Text>
           <Text style={styles.mealPlanSubtitle}>
-            {mealPlan.current.dietType.charAt(0).toUpperCase() + mealPlan.current.dietType.slice(1)} Diet • {mealPlan.currrent.dailyCaloriesTarget} calories
+            {mealPlan.current.dietType.charAt(0).toUpperCase() + mealPlan.current.dietType.slice(1)} Diet • {mealPlan.currrent?.dailyCaloriesTarget} calories
           </Text>
           
           {renderDailySummary(mealPlan.current)}
@@ -601,15 +612,106 @@ const MealPlanGeneratorScreen = () => {
         console.log("Generate Single Meal Plan")
         return renderSingleDayMealPlan();
       }
+      else{
+        setError("Failed to Generate Meal Plan.")
+        console.log("No meal plan")
+      }
       
-     setError("Failed to Generate Meal Plan.")
+     
     };
 
 
 
 
 
+/**
+ * Calculates both total and average nutrition values for meal plans
+ * @param {Object} mealPlan - The meal plan object (either daily or weekly)
+ * @param {string} planType - Either 'daily' or 'weekly'
+ * @returns {Object} Object containing both total and average nutrition values
+ */
+const calculateNutrition = (mealPlan, planType) => {
+  // Initialize nutrition objects
+  const nutritionTotals = {
+    calories: 0,
+    protein: 0,
+    carbs: 0,
+    fat: 0
+  };
+  
+  const nutritionAverages = {
+    calories: 0,
+    protein: 0,
+    carbs: 0,
+    fat: 0
+  };
 
+  if (!mealPlan) {
+    return { nutritionTotals, nutritionAverages };
+  }
+
+  if (planType === 'daily') {
+    // For daily plans
+    if (mealPlan.meals && Array.isArray(mealPlan.meals) && mealPlan.meals.length > 0) {
+      const mealCount = mealPlan.meals.length;
+      
+      // Calculate totals
+      mealPlan.meals.forEach(meal => {
+        nutritionTotals.calories += meal.calories || 0;
+        nutritionTotals.protein += meal.protein || 0;
+        nutritionTotals.carbs += meal.carbs || 0;
+        nutritionTotals.fat += meal.fat || 0;
+      });
+      
+      // Calculate averages per meal
+      nutritionAverages.calories = Math.round(nutritionTotals.calories / mealCount);
+      nutritionAverages.protein = Math.round(nutritionTotals.protein / mealCount);
+      nutritionAverages.carbs = Math.round(nutritionTotals.carbs / mealCount);
+      nutritionAverages.fat = Math.round(nutritionTotals.fat / mealCount);
+    }
+  } else if (planType === 'weekly') {
+    // For weekly plans
+    if (mealPlan.days && Array.isArray(mealPlan.days) && mealPlan.days.length > 0) {
+      const totalDays = mealPlan.days.length;
+      
+      // Calculate totals from all days
+      mealPlan.days.forEach(day => {
+        if (day.dailyTotals) {
+          // If dailyTotals is available, use it
+          nutritionTotals.calories += day.dailyTotals.calories || 0;
+          nutritionTotals.protein += day.dailyTotals.protein || 0;
+          nutritionTotals.carbs += day.dailyTotals.carbs || 0;
+          nutritionTotals.fat += day.dailyTotals.fat || 0;
+        } else {
+          // If dailyTotals is not available, calculate from meals
+          (day.meals || []).forEach(meal => {
+            nutritionTotals.calories += meal.calories || 0;
+            nutritionTotals.protein += meal.protein || 0;
+            nutritionTotals.carbs += meal.carbs || 0;
+            nutritionTotals.fat += meal.fat || 0;
+          });
+        }
+      });
+      
+      // Calculate daily averages
+      nutritionAverages.calories = Math.round(nutritionTotals.calories / totalDays);
+      nutritionAverages.protein = Math.round(nutritionTotals.protein / totalDays);
+      nutritionAverages.carbs = Math.round(nutritionTotals.carbs / totalDays);
+      nutritionAverages.fat = Math.round(nutritionTotals.fat / totalDays);
+    }
+  }
+
+  // Round all total values
+  nutritionTotals.calories = Math.round(nutritionTotals.calories);
+  nutritionTotals.protein = Math.round(nutritionTotals.protein);
+  nutritionTotals.carbs = Math.round(nutritionTotals.carbs);
+  nutritionTotals.fat = Math.round(nutritionTotals.fat);
+
+  return {
+    nutritionTotals,
+    nutritionAverages
+  };
+};
     
     return (
       <SafeAreaView style={styles.container}>
@@ -734,7 +836,7 @@ const MealPlanGeneratorScreen = () => {
               </TouchableOpacity>
             </View>
 }
-           {(mealPlan.current || weeklyMealPlan.current) && renderMealPlan()
+           {((mealPlan.current || weeklyMealPlan.current) && generationComplete ) && renderMealPlan()
            }
         </ScrollView>
         

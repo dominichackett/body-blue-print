@@ -32,6 +32,7 @@ const SavedMealPlansScreen = () => {
       const savedPlansJson = await AsyncStorage.getItem('savedMealPlans');
       if (savedPlansJson !== null) {
         const plans = JSON.parse(savedPlansJson);
+        console.log(savedPlansJson)
         // Sort by date created (newest first)
         plans.sort((a, b) => new Date(b.dateCreated) - new Date(a.dateCreated));
         setSavedPlans(plans);
@@ -91,17 +92,15 @@ const SavedMealPlansScreen = () => {
         
         <View style={styles.planDetails}>
           <Text style={styles.detailText}>
-            Diet: {item.plan.dietType.charAt(0).toUpperCase() + item.plan.dietType.slice(1)}
+            Diet: {item?.dietType?.charAt(0).toUpperCase() + item?.dietType?.slice(1)}
           </Text>
           <Text style={styles.detailText}>
             {item.type === 'weekly' 
-              ? `${item.plan.daysOfWeek.length} days` 
-              : `${item.plan.meals.length} meals`}
+              ? `${item?.count} days` 
+              : `${item?.count} meals`}
           </Text>
           <Text style={styles.detailText}>
-            {item.type === 'weekly'
-              ? `Avg: ${item.plan.overallNutrition.protein}g protein, ${item.plan.overallNutrition.carbs}g carbs, ${item.plan.overallNutrition.fat}g fat`
-              : `Total: ${item.plan.nutritionSummary.protein}g protein, ${item.plan.nutritionSummary.carbs}g carbs, ${item.plan.nutritionSummary.fat}g fat`}
+            {`Avg: ${item?.averageNutrition?.calories} calories ${item?.averageNutrition?.protein}g protein, ${item?.averageNutrition?.carbs}g carbs, ${item?.averageNutrition?.fat}g fat`}
           </Text>
         </View>
         
