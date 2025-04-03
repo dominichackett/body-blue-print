@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback ,useRef} from 'react';
 import {
   View,
   Text,
@@ -22,7 +22,7 @@ import Slider from '@react-native-community/slider';
 import { GEMINI_API_KEY } from '@env';
 import { useRegistration } from '@/contexts/RegistrationContext';
 
-const GEMINI_API_URL = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-pro-exp-03-25:streamGenerateContent';
+const GEMINI_API_URL = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-pro-exp-03-25:generateContent';
 
 const MealPlanGeneratorScreen = () => {
   // User preferences
@@ -33,8 +33,8 @@ const MealPlanGeneratorScreen = () => {
   const [generationComplete, setGenerationComplete] = useState(false);
   const [includeSnacks, setIncludeSnacks] = useState(true);
   const [includeEveningSnack, setIncludeEveningSnack] = useState(true);
-  const [mealPlan, setMealPlan] = useState(null);
-  const [weeklyMealPlan, setWeeklyMealPlan] = useState(null);
+  const mealPlan = useRef(null);
+  const weeklyMealPlan = useRef(null);
   const [selectedDay, setSelectedDay] = useState(0);
   const [daysPerWeek, setDaysPerWeek] = useState(5);
   const [showTips, setShowTips] = useState(false);
@@ -109,7 +109,7 @@ const MealPlanGeneratorScreen = () => {
       }
     };
   
-    const processGeminiResponse = async (geminiData) => {
+    const processStramedGeminiResponse = async (geminiData) => {
       try {
         if (!Array.isArray(geminiData)) {
           throw new Error('Expected an array response from Gemini API');
@@ -138,6 +138,45 @@ const MealPlanGeneratorScreen = () => {
         return JSON.parse(jsonMatch[0]);
       } catch (error) {
         console.error('Error processing Gemini response:', error);
+        throw error;
+      }
+    };
+
+
+    const processGeminiResponse = async (geminiData) => {
+      try {
+        // For non-streamed responses, you typically get a single response object
+        // rather than an array of chunks
+        
+        // Handle if data is unexpectedly still an array
+        if (Array.isArray(geminiData)) {
+          return processStramedGeminiResponse(geminiData); // Use your existing function
+        }
+        
+        // Extract text from the non-streamed response
+        let fullText = '';
+        
+        if (geminiData?.candidates && geminiData.candidates.length > 0) {
+          const candidate = geminiData.candidates[0];
+          if (candidate?.content?.parts && candidate.content.parts.length > 0) {
+            for (const part of candidate.content.parts) {
+              if (part.text) {
+                fullText += part.text;
+              }
+            }
+          }
+        }
+        
+        // Process the extracted text the same way as in your streamed function
+        const codeBlockMatch = fullText.match(/```json\s*([\s\S]*?)\s*```/);
+        const cleanedText = codeBlockMatch && codeBlockMatch[1] ? codeBlockMatch[1] : fullText;
+        
+        const jsonMatch = cleanedText.match(/\{[\s\S]*\}/);
+        if (!jsonMatch) throw new Error('No valid JSON found in the response');
+        
+        return JSON.parse(jsonMatch[0]);
+      } catch (error) {
+        console.error('Error processing non-streamed Gemini response:', error);
         throw error;
       }
     };
@@ -173,61 +212,95 @@ const MealPlanGeneratorScreen = () => {
         }
     
         const prompt = `
-          Generate a personalized ${duration} meal plan in detailed JSON format based on:
-          
-          User Profile:
-          ${userContext || 'No specific user profile available'}
-          
-          Nutritional Goals:
-          ${macroContext || `Default target of ${macroResults?.calories || calories} calories per day`}
-          
-          Preferences:
-          - Diet type: ${dietaryPreference}
-          - Days: ${daysPerWeek}
-          - Evening snack: ${includeEveningSnack ? 'yes' : 'no'}
-          - Excluded ingredients: ${excludedIngredients || 'none'}
-          
-          Requirements:
-          1. Prioritize the user's nutritional goals if provided
-          2. For ${duration} plans, include ${duration === 'daily' ? '3-5 meals' : '7 days of meals'}
-          3. Each meal should include:
-             - name
-             - description
-             - calories
-             - protein (g)
-             - carbs (g)
-             - fat (g)
-             - ingredients list
-             - preparation instructions
-          4. Ensure meals are appropriate for the user's dietary preference
-          5. Avoid excluded ingredients
-          6. Include variety across days if weekly plan
-          
-          Response format (ONLY return JSON):
-          {
-            "${duration}Plan": {
-              "dailyCalories": ${macroResults?.calories || calories},
-              "dietType": "${dietaryPreference}",
-              ${duration === 'weekly' ? `"days": [` : `"meals": [`}
-                {
-                  "name": "Meal name",
-                  "description": "Brief description",
+        Generate a personalized ${duration} meal plan in detailed JSON format based on:
+        
+        User Profile:
+        ${userContext || 'No specific user profile available'}
+        
+        Nutritional Goals:
+        ${macroContext || `Default target of ${macroResults?.calories || calories} calories per day`}
+        
+        Preferences:
+        - Diet type: ${dietaryPreference}
+        - Plan duration: ${daysPerWeek} day${daysPerWeek > 1 ? 's' : ''} (${duration} plan)
+        - Evening snack: ${includeEveningSnack ? 'yes' : 'no'}
+        - Excluded ingredients: ${excludedIngredients || 'none'}
+        
+        Requirements:
+        1. Use the provided nutritional goals as the exact daily targets.
+        2. Include ${duration === 'daily' ? '3-5 meals' : `${daysPerWeek} days with 3-5 meals each`}${includeEveningSnack ? ', ensuring one meal per day is an "Evening Snack"' : ''}.
+        3. Each meal must include:
+           - name (e.g., "Breakfast", "Lunch", "Dinner", "Evening Snack")
+           - description (brief text about the meal)
+           - calories (numeric value)
+           - protein (numeric value in grams)
+           - carbs (numeric value in grams)
+           - fat (numeric value in grams)
+           - items (array of food items, each with:
+             - name (string)
+             - calories (numeric value)
+             - preparation (detailed instructions))
+        4. Ensure meals align with the ${dietaryPreference} diet preference.
+        5. Avoid any excluded ingredients (${excludedIngredients || 'none'}).
+        6. For weekly plans, include variety across days.
+        7. Calculate and include daily totals for calories, protein, carbs, and fat${duration === 'weekly' ? ' for each day under "dailyTotals"' : ' within the "meals" array'}.
+        8. Return only JSON, with no additional text or markers (e.g., no \`\`\`json).
+        
+        Response format (return ONLY this JSON structure):
+        {
+          "${duration}Plan": {
+            "dailyCaloriesTarget": ${macroResults?.calories || calories},
+            "dailyProteinTarget": ${macroResults?.protein || 0},
+            "dailyCarbsTarget": ${macroResults?.carbs || 0},
+            "dailyFatTarget": ${macroResults?.fat || 0},
+            "dietType": "${dietaryPreference}",
+            ${duration === 'weekly' ? `"days": [
+              {
+                "day": "Monday",
+                "meals": [
+                  {
+                    "name": "Breakfast",
+                    "description": "Brief description",
+                    "calories": number,
+                    "protein": number,
+                    "carbs": number,
+                    "fat": number,
+                    "items": [
+                      {
+                        "name": "Ingredient/Item name",
+                        "calories": number,
+                        "preparation": "Detailed instructions"
+                      }
+                    ]
+                  }
+                ],
+                "dailyTotals": {
                   "calories": number,
                   "protein": number,
                   "carbs": number,
-                  "fat": number,
-                  "items": [
-                    {
-                      "name": "Ingredient/Item name",
-                      "calories": number,
-                      "preparation": "Detailed instructions"
-                    }
-                  ]
+                  "fat": number
                 }
-              ]
-            }
+              }
+            ]` : `"meals": [
+              {
+                "name": "Breakfast",
+                "description": "Brief description",
+                "calories": number,
+                "protein": number,
+                "carbs": number,
+                "fat": number,
+                "items": [
+                  {
+                    "name": "Ingredient/Item name",
+                    "calories": number,
+                    "preparation": "Detailed instructions"
+                  }
+                ]
+              }
+            ]`}
           }
-        `;
+        }
+        `.trim(); // Remove leading/trailing whitespace
     
         const requestBody = {
           contents: [{
@@ -237,9 +310,11 @@ const MealPlanGeneratorScreen = () => {
             temperature: 0.4,
             topK: 32,
             topP: 1,
-            maxOutputTokens: 4096,
+            maxOutputTokens: 20000,
           }
         };
+        console.log(prompt)
+       
     
         const response = await fetch(`${GEMINI_API_URL}?key=${GEMINI_API_KEY}`, {
           method: 'POST',
@@ -254,15 +329,18 @@ const MealPlanGeneratorScreen = () => {
         }
     
         const data = await response.json();
+        console.log(JSON.stringify(data))
         
+      
         // Use the existing processGeminiResponse function
         const processedPlan = processGeminiResponse(data, daysPerWeek > 1);
-    
+        console.log("Processed ")
+        console.log(JSON.stringify(processedPlan))
         // Set the generated plan
         if (daysPerWeek > 1) {
-          setWeeklyMealPlan(processedPlan);
+          weeklyMealPlan.current = processedPlan.weeklyPlan;
         } else {
-          setMealPlan(processedPlan);
+         mealPlan.current = processedPlan.dailyPlan;
         }
     
         setGenerationComplete(true);
@@ -270,19 +348,32 @@ const MealPlanGeneratorScreen = () => {
       } catch (error) {
         console.error('Meal plan generation failed:', error);
         setError(error.message || 'Failed to generate meal plan');
-        setMealPlan(null);
-        setWeeklyMealPlan(null);
+        mealPlan.current = null;
+        weeklyMealPlan.current =null;
       } finally {
         setIsLoading(false);
         setAiThinking(false);
       }
     };
+
     const renderDailySummary = (day) => {
-      const totalCalories = day.meals.reduce((sum, meal) => sum + meal.calories, 0);
-      const totalProtein = day.meals.reduce((sum, meal) => sum + meal.protein, 0);
-      const totalCarbs = day.meals.reduce((sum, meal) => sum + meal.carbs, 0);
-      const totalFat = day.meals.reduce((sum, meal) => sum + meal.fat, 0);
-  
+      // Use the pre-calculated dailyTotals if available, otherwise calculate
+      let totalCalories, totalProtein, totalCarbs, totalFat;
+      
+      if (day.dailyTotals) {
+        // Use pre-calculated totals from the JSON
+        totalCalories = day.dailyTotals.calories;
+        totalProtein = day.dailyTotals.protein;
+        totalCarbs = day.dailyTotals.carbs;
+        totalFat = day.dailyTotals.fat;
+      } else {
+        // Fall back to calculating totals if dailyTotals isn't available
+        totalCalories = day.meals.reduce((sum, meal) => sum + meal.calories, 0);
+        totalProtein = day.meals.reduce((sum, meal) => sum + meal.protein, 0);
+        totalCarbs = day.meals.reduce((sum, meal) => sum + meal.carbs, 0);
+        totalFat = day.meals.reduce((sum, meal) => sum + meal.fat, 0);
+      }
+    
       return (
         <View>
           <View style={styles.totalCaloriesSection}>
@@ -345,20 +436,20 @@ const MealPlanGeneratorScreen = () => {
         </View>
       );
     };
-  
+    
     const renderSingleDayMealPlan = () => {
-      if (!mealPlan) return null;
+      if (!mealPlan.current) return null;
       
       return (
         <View style={styles.mealPlanContainer}>
           <Text style={styles.mealPlanTitle}>Your Personalized Meal Plan</Text>
           <Text style={styles.mealPlanSubtitle}>
-            {mealPlan.dietType.charAt(0).toUpperCase() + mealPlan.dietType.slice(1)} Diet • {mealPlan.dailyCalories} calories
+            {mealPlan.current.dietType.charAt(0).toUpperCase() + mealPlan.current.dietType.slice(1)} Diet • {mealPlan.currrent.dailyCaloriesTarget} calories
           </Text>
           
-          {renderDailySummary(mealPlan)}
+          {renderDailySummary(mealPlan.current)}
           
-          {mealPlan.meals.map((meal, index) => (
+          {mealPlan.current.meals.map((meal, index) => (
             <View key={index} style={styles.mealCard}>
               <View style={styles.mealHeader}>
                 <Text style={styles.mealName}>{meal.name}</Text>
@@ -393,8 +484,8 @@ const MealPlanGeneratorScreen = () => {
             style={styles.resetButton}
             onPress={() => {
               setGenerationComplete(false);
-              setMealPlan(null);
-              setWeeklyMealPlan(null);
+              mealPlan.current = null
+              weeklyMealPlan.current =null;
             }}
           >
             <Text style={styles.resetButtonText}>Generate New Plan</Text>
@@ -402,29 +493,29 @@ const MealPlanGeneratorScreen = () => {
         </View>
       );
     };
-  
+    
     const renderWeeklyMealPlan = () => {
-      if (!weeklyMealPlan) return null;
+      if (!weeklyMealPlan.current) return null;
       
       return (
         <View style={styles.mealPlanContainer}>
           <Text style={styles.mealPlanTitle}>Your Weekly Meal Plan</Text>
           <Text style={styles.mealPlanSubtitle}>
-            {weeklyMealPlan.dietType.charAt(0).toUpperCase() + weeklyMealPlan.dietType.slice(1)} Diet • {calories} calories/day
+            {weeklyMealPlan.current.dietType.charAt(0).toUpperCase() + weeklyMealPlan.current.dietType.slice(1)} Diet • {weeklyMealPlan.current.dailyCaloriesTarget} calories/day
           </Text>
           
           <View style={styles.nutritionSummary}>
             <View style={styles.nutrientItem}>
-              <Text style={styles.nutrientValue}>{weeklyMealPlan.overallNutrition?.protein || '--'}g</Text>
-              <Text style={styles.nutrientLabel}>Avg Protein</Text>
+              <Text style={styles.nutrientValue}>{weeklyMealPlan.current.dailyProteinTarget || '--'}g</Text>
+              <Text style={styles.nutrientLabel}>Target Protein</Text>
             </View>
             <View style={styles.nutrientItem}>
-              <Text style={styles.nutrientValue}>{weeklyMealPlan.overallNutrition?.carbs || '--'}g</Text>
-              <Text style={styles.nutrientLabel}>Avg Carbs</Text>
+              <Text style={styles.nutrientValue}>{weeklyMealPlan.current.dailyCarbsTarget || '--'}g</Text>
+              <Text style={styles.nutrientLabel}>Target Carbs</Text>
             </View>
             <View style={styles.nutrientItem}>
-              <Text style={styles.nutrientValue}>{weeklyMealPlan.overallNutrition?.fat || '--'}g</Text>
-              <Text style={styles.nutrientLabel}>Avg Fat</Text>
+              <Text style={styles.nutrientValue}>{weeklyMealPlan.current.dailyFatTarget || '--'}g</Text>
+              <Text style={styles.nutrientLabel}>Target Fat</Text>
             </View>
           </View>
           
@@ -433,7 +524,7 @@ const MealPlanGeneratorScreen = () => {
             showsHorizontalScrollIndicator={false}
             style={styles.dayTabs}
           >
-            {weeklyMealPlan.days.map((day, index) => (
+            {weeklyMealPlan.current.days.map((day, index) => (
               <TouchableOpacity
                 key={index}
                 style={[
@@ -448,15 +539,15 @@ const MealPlanGeneratorScreen = () => {
                     selectedDay === index ? styles.selectedDayTabText : null
                   ]}
                 >
-                  {day.dayOfWeek || `Day ${index + 1}`}
+                  {day.day || `Day ${index + 1}`}
                 </Text>
               </TouchableOpacity>
             ))}
           </ScrollView>
           
-          {weeklyMealPlan.days[selectedDay] && renderDailySummary(weeklyMealPlan.days[selectedDay])}
+          {weeklyMealPlan.current.days[selectedDay] && renderDailySummary(weeklyMealPlan.current.days[selectedDay])}
           
-          {weeklyMealPlan.days[selectedDay]?.meals.map((meal, index) => (
+          {weeklyMealPlan.current.days[selectedDay]?.meals.map((meal, index) => (
             <View key={index} style={styles.mealCard}>
               <View style={styles.mealHeader}>
                 <Text style={styles.mealName}>{meal.name}</Text>
@@ -491,8 +582,8 @@ const MealPlanGeneratorScreen = () => {
             style={styles.resetButton}
             onPress={() => {
               setGenerationComplete(false);
-              setMealPlan(null);
-              setWeeklyMealPlan(null);
+              mealPlan.current = null
+              weeklyMealPlan.current =null;
             }}
           >
             <Text style={styles.resetButtonText}>Generate New Plan</Text>
@@ -500,21 +591,32 @@ const MealPlanGeneratorScreen = () => {
         </View>
       );
     };
-  
+    
     const renderMealPlan = () => {
-      if (weeklyMealPlan) {
+      if (weeklyMealPlan.current) {
+        console.log("Generatate Weekly Meal Plan") 
         return renderWeeklyMealPlan();
-      } else if (mealPlan) {
+
+      } else if (mealPlan.current) {
+        console.log("Generate Single Meal Plan")
         return renderSingleDayMealPlan();
       }
-      return null;
+      
+     setError("Failed to Generate Meal Plan.")
     };
+
+
+
+
+
+
+    
     return (
       <SafeAreaView style={styles.container}>
         <StatusBar barStyle="dark-content" backgroundColor="#fff" />
         
         <ScrollView style={styles.scrollView} contentContainerStyle={styles.scrollContent}>
-          {!generationComplete ? (
+          {(!generationComplete  || (!mealPlan.current && !weeklyMealPlan.current)) &&
             <View style={styles.formContainer}>
               <Text style={styles.formTitle}>Your Meal Preferences</Text>
               
@@ -631,9 +733,9 @@ const MealPlanGeneratorScreen = () => {
                 )}
               </TouchableOpacity>
             </View>
-          ) : (
-            renderMealPlan()
-          )}
+}
+           {(mealPlan.current || weeklyMealPlan.current) && renderMealPlan()
+           }
         </ScrollView>
         
         <Modal
