@@ -19,7 +19,7 @@ import { FontAwesome } from '@expo/vector-icons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import YoutubePlayer from 'react-native-youtube-iframe';
 import { GEMINI_API_KEY } from '@env';
-
+import { lilypadInference, processLilyPadResponse } from '@/utils/lilypad';
 const GEMINI_API_URL = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-pro-exp-03-25:streamGenerateContent';
 
 const ExerciseAIScreen = () => {
@@ -268,6 +268,14 @@ const ExerciseAIScreen = () => {
         Respond ONLY with the JSON. No text before or after.
       `;
 
+      const exer = await lilypadInference(prompt)
+      const processEx = await processLilyPadResponse(exer)
+      setExercises(processEx)
+      setAiThinking(false);
+      setLoading(false);
+      console.log(JSON.stringify(exer))
+      return
+
       // Prepare the request body for Gemini API
       const requestBody = {
         contents: [
@@ -345,7 +353,7 @@ const ExerciseAIScreen = () => {
           <Image 
             source={exercise.image} 
             style={styles.exerciseImage}
-            resizeMode="cover"
+            resizeMode="contain"
           />
         </View>
         
@@ -392,7 +400,7 @@ const ExerciseAIScreen = () => {
   return (
     <SafeAreaView style={styles.container}>
       <StatusBar barStyle="dark-content" backgroundColor="#fff" />
-      
+      <View style={styles.headerContainer}>
       <View style={styles.header}>
         <TouchableOpacity 
           style={styles.backButton}
@@ -416,6 +424,7 @@ const ExerciseAIScreen = () => {
             )}
           </View>
         </TouchableOpacity>
+      </View>
       </View>
       
       <View style={styles.subHeader}>
@@ -542,11 +551,10 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: '#f5f5f5',
-    paddingTop: Platform.OS === 'android' ? StatusBar.currentHeight : 0
   },
   headerContainer: {
     backgroundColor: 'white',
-    paddingTop: Platform.OS === 'android' ? 8 : 0, // Additional padding for Android
+    paddingTop: Platform.OS === 'android' ? 20 : 0, // Additional padding for Android
     elevation: 4, // Android shadow
     shadowColor: '#000', // iOS shadow
     shadowOffset: { width: 0, height: 2 },

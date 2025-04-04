@@ -37,7 +37,7 @@ const ViewMealPlanScreen = () => {
         const foundPlan = savedPlans.find(plan => plan.id === planId);
         
         if (foundPlan) {
-          console.log("Found plan:", foundPlan);
+          console.log("Found plan:", JSON.stringify(foundPlan));
           setMealPlan(foundPlan);
         } else {
           // Plan not found (may have been deleted)
@@ -144,9 +144,9 @@ const ViewMealPlanScreen = () => {
   // Determine the current day/plan to display
   let currentDayData;
   
-  if (isWeekly && planData && planData.current && planData.current.days && planData.current.days.length > 0) {
+  if (isWeekly && planData  && planData.days && planData.days.length > 0) {
     // For weekly plans, select the current day
-    currentDayData = planData.current.days[selectedDay];
+    currentDayData = planData.days[selectedDay];
   } else if (!isWeekly && planData) {
     // For daily plans, use the entire plan
     currentDayData = planData;
@@ -176,27 +176,27 @@ const ViewMealPlanScreen = () => {
         <View style={styles.mealPlanContainer}>
           <Text style={styles.mealPlanTitle}>{mealPlan.planName}</Text>
           <Text style={styles.mealPlanSubtitle}>
-            {(planData.current?.dietType || mealPlan.dietType).charAt(0).toUpperCase() + (planData.current?.dietType || mealPlan.dietType).slice(1)} Diet • Created on {formatDate(mealPlan.dateCreated)}
+            {(planData?.dietType || mealPlan.dietType).charAt(0).toUpperCase() + (planData?.dietType || mealPlan.dietType).slice(1)} Diet • Created on {formatDate(mealPlan.dateCreated)}
           </Text>
           
-          {isWeekly && planData && planData.current && planData.current.days && (
+          {isWeekly && planData && planData && planData.days && (
             <View>
               <Text style={styles.sectionTitle}>Weekly Overview</Text>
               <View style={styles.nutritionSummary}>
                 <View style={styles.nutrientItem}>
-                  <Text style={styles.nutrientValue}>{planData.current.dailyProteinTarget || mealPlan.averageNutrition?.protein || 0}g</Text>
+                  <Text style={styles.nutrientValue}>{planData.dailyProteinTarget || mealPlan.averageNutrition?.protein || 0}g</Text>
                   <Text style={styles.nutrientLabel}>Protein Target</Text>
                 </View>
                 <View style={styles.nutrientItem}>
-                  <Text style={styles.nutrientValue}>{planData.current.dailyCarbsTarget || mealPlan.averageNutrition?.carbs || 0}g</Text>
+                  <Text style={styles.nutrientValue}>{planData.dailyCarbsTarget || mealPlan.averageNutrition?.carbs || 0}g</Text>
                   <Text style={styles.nutrientLabel}>Carbs Target</Text>
                 </View>
                 <View style={styles.nutrientItem}>
-                  <Text style={styles.nutrientValue}>{planData.current.dailyFatTarget || mealPlan.averageNutrition?.fat || 0}g</Text>
+                  <Text style={styles.nutrientValue}>{planData.dailyFatTarget || mealPlan.averageNutrition?.fat || 0}g</Text>
                   <Text style={styles.nutrientLabel}>Fat Target</Text>
                 </View>
                 <View style={styles.nutrientItem}>
-                  <Text style={styles.nutrientValue}>{planData.current.dailyCaloriesTarget || Math.round(mealPlan.averageNutrition?.calories || 0)}</Text>
+                  <Text style={styles.nutrientValue}>{planData.dailyCaloriesTarget || Math.round(mealPlan.averageNutrition?.calories || 0)}</Text>
                   <Text style={styles.nutrientLabel}>Daily Cal Target</Text>
                 </View>
               </View>
@@ -208,7 +208,7 @@ const ViewMealPlanScreen = () => {
                 showsHorizontalScrollIndicator={false}
                 style={styles.dayTabs}
               >
-                {planData.current.days.map((day, index) => (
+                {planData.days.map((day, index) => (
                   <TouchableOpacity
                     key={index}
                     style={[

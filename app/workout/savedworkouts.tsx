@@ -475,7 +475,7 @@ const SavedWorkoutsScreen = () => {
           <Image 
             source={item.image} 
             style={styles.exerciseImage}
-            resizeMode="cover"
+            resizeMode="contain"
           />
           {/* Only show play button if there's a valid video */}
           {hasValidVideo && (
@@ -555,6 +555,14 @@ const SavedWorkoutsScreen = () => {
             <FontAwesome name="arrow-left" size={20} color="#333" />
           </TouchableOpacity>
           <Text style={styles.headerTitle}>My Workout</Text>
+           <View style={styles.buttonWithBadge}>
+                      <FontAwesome name="list-alt" size={20} color="#333" />
+                      {savedWorkouts.length > 0 && (
+                        <View style={styles.badgeContainer}>
+                          <Text style={styles.badgeText}>{getFilteredWorkouts().length}</Text>
+                        </View>
+                      )}
+                    </View>
           <View style={styles.iconPlaceholder} />
         </View>
       </View>
@@ -657,7 +665,7 @@ const styles = StyleSheet.create({
   },
   headerContainer: {
     backgroundColor: 'white',
-    paddingTop: Platform.OS === 'android' ? 8 : 0,
+    paddingTop: Platform.OS === 'android' ? 20 : 0,
     elevation: 4,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
@@ -1032,6 +1040,25 @@ const styles = StyleSheet.create({
     fontSize: 14,
     marginLeft: 6,
   },
+  buttonWithBadge: {
+    position: 'relative',
+  },
+  badgeContainer: {
+    position: 'absolute',
+    top: -8,
+    right: -8,
+    backgroundColor: '#EA4335',
+    borderRadius: 10,
+    minWidth: 18,
+    height: 18,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  badgeText: {
+    color: 'white',
+    fontSize: 10,
+    fontWeight: 'bold',
+  }
 });
 
 export default SavedWorkoutsScreen;

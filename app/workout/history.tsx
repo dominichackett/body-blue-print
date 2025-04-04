@@ -14,6 +14,7 @@ import {
 import { useNavigation } from 'expo-router';
 import { FontAwesome } from '@expo/vector-icons';
 import DateTimePicker from '@react-native-community/datetimepicker';
+import Constants from 'expo-constants';
 
 const ExerciseHistoryScreen = () => {
   const navigation = useNavigation();
@@ -316,7 +317,7 @@ const styles = StyleSheet.create({
   },
   headerContainer: {
     backgroundColor: 'white',
-    paddingTop: Platform.OS === 'android' ? 8 : 0,
+    paddingTop: Platform.OS === 'android' ? 20 : 0,
     elevation: 4,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
@@ -327,8 +328,10 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    paddingHorizontal: 15,
-    paddingVertical: 15,
+    paddingHorizontal: 16,
+    paddingVertical: 20,
+    marginTop: Constants.statusBarHeight,
+
   },
   backButton: {
     padding: 8,
@@ -337,6 +340,7 @@ const styles = StyleSheet.create({
     fontSize: 18,
     fontWeight: 'bold',
     color: '#333',
+    
   },
   iconPlaceholder: {
     width: 36,

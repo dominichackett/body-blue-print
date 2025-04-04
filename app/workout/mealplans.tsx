@@ -175,7 +175,8 @@ const styles = StyleSheet.create({
   },
   headerContainer: {
     backgroundColor: 'white',
-    paddingTop: Platform.OS === 'android' ? 8 : 0,
+    
+    paddingTop: Platform.OS === 'android' ? 20: 0,
     elevation: 4,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
