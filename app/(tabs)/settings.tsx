@@ -318,7 +318,7 @@ const styles = StyleSheet.create({
     zIndex: 1,
   },
   infoList: {
-    marginBottom: 20,
+    marginBottom: 8,
     zIndex: 1,
   },
   infoItem: {
@@ -342,7 +342,7 @@ const styles = StyleSheet.create({
   daoStatsContainer: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    marginBottom: 20,
+    marginBottom: 10,
     paddingVertical: 15,
     paddingHorizontal: 10,
     backgroundColor: 'rgba(255, 255, 255, 0.2)',
