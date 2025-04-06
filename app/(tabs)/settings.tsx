@@ -23,11 +23,11 @@ async function uploadToDAO(bucketName,filename, jsonData, message, signature) {
     const jsonString = JSON.stringify(jsonData);
     
     // The URL includes the bucketName as a path parameter
-    const url = `http://localhost:3001/api/buckets/${bucketName}/upload`;
+    const url = `http://192.168.0.12:3001/api/buckets/${bucketName}/upload`;
     
     // Set query parameters for message and signature
     const urlWithParams = `${url}?message=${encodeURIComponent(message)}&signature=${encodeURIComponent(signature)}`;
-    
+    console.log(urlWithParams)
     // Use RNFetchBlob to handle the upload
     const response = await RNFetchBlob.fetch(
       'POST',
@@ -143,13 +143,8 @@ const MainScreen = () => {
     
       
      // return
-      const isMember = await contract.isMember(ethAddress);
-      if(!isMember)
-      {
-        Alert.alert("You are not a member of the DAO. Please purchase some tokens");
-        return
-
-      }  
+      return await contract.isMember(ethAddress);
+     
     }catch(error)
     {
       console.error("Error ",error)
@@ -191,26 +186,32 @@ const getSelectedCheckboxes = () => {
   const uploadPersonalizedMacros = async()=>{
     const userdata = await AsyncStorage.getItem(USER_DATA_STORAGE_KEY);
     console.log(userdata)
-    if(!userdata)
+    if(userdata)
     {
       
       const {message,signature} =  await signMessage()
-      await uploadToDAO('bodyblueprintdao',ethAddress+"_ud.json",userdata,message,signature)
-   
+      console.log("Uploading Personalized Macros")
+      
+      return await uploadToDAO('bodyblueprintdao',ethAddress+`_${new Date().getTime()}`+"_ud.json",userdata,message,signature)
+      
+       
     }  
+
+    return ({error:"No macro data found"})
       
   }
 
   const uploadWorkouts = async()=>{
     const savedWorkoutsJson = await AsyncStorage.getItem('savedWorkouts');
     console.log(savedWorkoutsJson)
-    if(!savedWorkoutsJson)
+    if(savedWorkoutsJson)
       {
         
         const {message,signature} =  await signMessage()
-        await uploadToDAO('bodyblueprintdao',ethAddress+"_workouts.json",savedWorkoutsJson,message,signature)
+        return await uploadToDAO('bodyblueprintdao',ethAddress+`_${new Date().getTime()}`+"_workouts.json",savedWorkoutsJson,message,signature)
      
       }  
+      return ({error:"No workout data found"})
    
   }
 
@@ -218,13 +219,15 @@ const getSelectedCheckboxes = () => {
   const uploadSavedMealPlans = async()=>{
     const savedPlansJson = await AsyncStorage.getItem('savedMealPlans');
     console.log(savedPlansJson)
-    if(!savedPlansJson)
+    if(savedPlansJson)
       {
         
         const {message,signature} =  await signMessage()
-        await uploadToDAO('bodyblueprintdao',ethAddress+"_mealplans.json",savedPlansJson,message,signature)
+        return await uploadToDAO('bodyblueprintdao',ethAddress+`_${new Date().getTime()}`+"_mealplans.json",savedPlansJson,message,signature)
      
       }  
+
+      return ({error:"No meal plan data found"})
    
 
   }
@@ -232,13 +235,15 @@ const getSelectedCheckboxes = () => {
   const uploadFoodHistory = async()=>{
     const foodHistoryJson = await AsyncStorage.getItem('food_calorie_history');
     console.log(foodHistoryJson)
-    if(!foodHistoryJson)
+    if(foodHistoryJson)
       {
         
         const {message,signature} =  await signMessage()
-        await uploadToDAO('bodyblueprintdao',ethAddress+"_foodhistory.json",foodHistoryJson,message,signature)
+        return await uploadToDAO('bodyblueprintdao',ethAddress+`_${new Date().getTime()}`+"_foodhistory.json",foodHistoryJson,message,signature)
      
       }  
+
+      return ({error:"No food history data found"})
    
   }
 
@@ -254,26 +259,42 @@ const getSelectedCheckboxes = () => {
        return
     }
     console.log(dataToUpload)
-    
-   // isDAOMember()
-    if(dataToUpload.includes("Personalized Macros"))   
-       await uploadPersonalizedMacros()
-
-    if(dataToUpload.includes("Workouts"))   
-      await uploadWorkouts()
-
-    if(dataToUpload.includes("Meal Plans"))   
-      await uploadSavedMealPlans()
-    
-    if(dataToUpload.includes("Food History"))   
-      await uploadFoodHistory()
-    Alert.alert("Data uploaded successfully.")
-   
     try {
 
+     if(!await isDAOMember())
+        throw Error("You are not a DOA member")
+    if(dataToUpload.includes("Personalized Macros"))   
+    {  const response= await uploadPersonalizedMacros()
+       if(response.error)
+        throw new Error(response.error)
+    }
+    if(dataToUpload.includes("Workouts"))       
+     { 
+       const response = await uploadWorkouts()
+       if(response.error)
+        throw new Error(response.error)
+    }
+
+    if(dataToUpload.includes("Meal Plans"))   
+      { 
+        const response = await uploadSavedMealPlans()
+        if(response.error)
+          throw new Error(response.error)
+      }
+      
+    if(dataToUpload.includes("Food History"))   
+      { 
+        const response = await uploadFoodHistory()
+        if(response.error)
+          throw new Error(response.error)
+      }
+    Alert.alert("Data uploaded successfully.")
+   
+    
     }catch(error)
     {
-      Alert.alert(error)
+      console.log(JSON.stringify(error))
+      Alert.alert(error.message)
     }finally{
       setIsUploading(false)
     }
