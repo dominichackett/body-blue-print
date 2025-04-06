@@ -8,5 +8,7 @@ declare module '@env' {
     export const ANURA_API_KEY:string;
     export const ANURA_BASE_URL:string;
     export const ANURA_MODEL_ID:string;
+    export const DAO_ADDRESS:string;
+    export const DAO_ABI:string;
     // Add other environment variables you're using
   }

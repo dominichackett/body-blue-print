@@ -1,12 +1,59 @@
 import React, { useContext, useState } from 'react';
-import { View, Text, StyleSheet, Image, TouchableOpacity, Alert, StatusBar, ScrollView } from 'react-native';
+import { View, Text, StyleSheet, Image, TouchableOpacity, Alert, StatusBar, ScrollView, ActivityIndicator } from 'react-native';
 import { BlurView } from 'expo-blur';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useAuth } from '@/providers/AuthProvider';
-import { router, Stack } from 'expo-router';
+import {  Stack } from 'expo-router';
+import { ethers } from 'ethers';
+import {DAO_ADDRESS,DAO_ABI} from '@env'
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
+
+const USER_DATA_STORAGE_KEY = '@macro_calculator_user_data';
+const USER_BIO_STORAGE_KEY = '@macro_calculator_user_bio';
 // Assume we have a theme context
 const ThemeContext = React.createContext({ isDark: false });
+
+
+import RNFetchBlob from 'react-native-blob-util';
+
+async function uploadToDAO(bucketName,filename, jsonData, message, signature) {
+  try {
+    // Convert JSON data to string
+    const jsonString = JSON.stringify(jsonData);
+    
+    // The URL includes the bucketName as a path parameter
+    const url = `http://localhost:3001/api/buckets/${bucketName}/upload`;
+    
+    // Set query parameters for message and signature
+    const urlWithParams = `${url}?message=${encodeURIComponent(message)}&signature=${encodeURIComponent(signature)}`;
+    
+    // Use RNFetchBlob to handle the upload
+    const response = await RNFetchBlob.fetch(
+      'POST',
+      urlWithParams,
+      {
+        'Content-Type': 'multipart/form-data',
+      },
+      [
+        {
+          name: "file",
+          filename: filename,
+          type: 'application/json',
+          data: RNFetchBlob.base64.encode(jsonString)
+        }
+      ]
+    );
+    
+    // Parse the response
+    const responseData = response.json();
+    
+    return responseData;
+  } catch (error) {
+    console.error('Error uploading JSON object:', error);
+    throw error;
+  }
+}
 
 // Themed components (simplified versions)
 const ThemedView = ({ style, children }) => {
@@ -60,8 +107,9 @@ const CheckboxWithDescription = ({ label, description, checked, onToggle }) => {
 
 const MainScreen = () => {
   const { isDark } = useContext(ThemeContext);
-  const { logout } = useAuth();
-  
+  const { ethAddress,provider,signer} = useAuth();
+  const [isUploading,setIsUploading] = useState(false)
+  console.log(ethAddress)
   // State for tabs
   const [activeTab, setActiveTab] = useState('share');
   
@@ -84,6 +132,29 @@ const MainScreen = () => {
       description: 'Share your food consumption history with detailed calorie and macro breakdowns.'
     }
   });
+
+  const isDAOMember = async()=>{
+    try {
+      console.log(provider)
+      const parsedABI = JSON.parse(DAO_ABI) as Array<any>; // or use a more specific type
+
+      const contract = new ethers.Contract(DAO_ADDRESS,parsedABI,provider)
+    
+    
+      
+     // return
+      const isMember = await contract.isMember(ethAddress);
+      if(!isMember)
+      {
+        Alert.alert("You are not a member of the DAO. Please purchase some tokens");
+        return
+
+      }  
+    }catch(error)
+    {
+      console.error("Error ",error)
+    }
+  }
   
   const toggleCheckbox = (label) => {
     setCheckboxes(prev => ({
@@ -94,9 +165,118 @@ const MainScreen = () => {
       }
     }));
   };
+
+
+  const signMessage = async()=>{
+    const message = {message:"Body Blue Print DAO",date:new Date().toString()}
+    const signature = await signer?.signMessage(message.toString());
+   const recoveredAddress = ethers.utils.verifyMessage(message.toString(),signature)
+   console.log("Recovered Address: ",recoveredAddress)
+     return{message,signature}
+  } 
+
+  // To check which checkboxes are selected
+const getSelectedCheckboxes = () => {
+  const selected = [];
   
-  const handleShare = () => {
-    Alert.alert("Shared successfully");
+  Object.entries(checkboxes).forEach(([label, { checked }]) => {
+    if (checked) {
+      selected.push(label);
+    }
+  });
+  
+  return selected;
+};
+  
+  const uploadPersonalizedMacros = async()=>{
+    const userdata = await AsyncStorage.getItem(USER_DATA_STORAGE_KEY);
+    console.log(userdata)
+    if(!userdata)
+    {
+      
+      const {message,signature} =  await signMessage()
+      await uploadToDAO('bodyblueprintdao',ethAddress+"_ud.json",userdata,message,signature)
+   
+    }  
+      
+  }
+
+  const uploadWorkouts = async()=>{
+    const savedWorkoutsJson = await AsyncStorage.getItem('savedWorkouts');
+    console.log(savedWorkoutsJson)
+    if(!savedWorkoutsJson)
+      {
+        
+        const {message,signature} =  await signMessage()
+        await uploadToDAO('bodyblueprintdao',ethAddress+"_workouts.json",savedWorkoutsJson,message,signature)
+     
+      }  
+   
+  }
+
+
+  const uploadSavedMealPlans = async()=>{
+    const savedPlansJson = await AsyncStorage.getItem('savedMealPlans');
+    console.log(savedPlansJson)
+    if(!savedPlansJson)
+      {
+        
+        const {message,signature} =  await signMessage()
+        await uploadToDAO('bodyblueprintdao',ethAddress+"_mealplans.json",savedPlansJson,message,signature)
+     
+      }  
+   
+
+  }
+
+  const uploadFoodHistory = async()=>{
+    const foodHistoryJson = await AsyncStorage.getItem('food_calorie_history');
+    console.log(foodHistoryJson)
+    if(!foodHistoryJson)
+      {
+        
+        const {message,signature} =  await signMessage()
+        await uploadToDAO('bodyblueprintdao',ethAddress+"_foodhistory.json",foodHistoryJson,message,signature)
+     
+      }  
+   
+  }
+
+
+  const handleShare = async() => {
+    setIsUploading(true)
+    const dataToUpload = getSelectedCheckboxes()
+    console.log(dataToUpload)
+    if(dataToUpload.length ==0)
+    {
+       Alert.alert("Please selected data to upload.")
+       setIsUploading(false)
+       return
+    }
+    console.log(dataToUpload)
+    
+   // isDAOMember()
+    if(dataToUpload.includes("Personalized Macros"))   
+       await uploadPersonalizedMacros()
+
+    if(dataToUpload.includes("Workouts"))   
+      await uploadWorkouts()
+
+    if(dataToUpload.includes("Meal Plans"))   
+      await uploadSavedMealPlans()
+    
+    if(dataToUpload.includes("Food History"))   
+      await uploadFoodHistory()
+    Alert.alert("Data uploaded successfully.")
+   
+    try {
+
+    }catch(error)
+    {
+      Alert.alert(error)
+    }finally{
+      setIsUploading(false)
+    }
   };
   
   return (
@@ -225,12 +405,23 @@ const MainScreen = () => {
                 </ScrollView>
                 
                 {/* Upload button - made more visible and fixed positioning */}
-                <ActionButton
-                  title="Upload"
-                  onPress={handleShare}
-                  style={styles.uploadButton}
-                  textStyle={styles.buttonText}
-                />
+
+<TouchableOpacity 
+  style={styles.uploadButton}
+  onPress={handleShare}
+  disabled={isUploading}
+>
+  <View style={styles.buttonContainer}>
+    {isUploading ? (
+      <>
+        <ActivityIndicator color="white" size="small" />
+        <Text style={styles.buttonText}>Uploading</Text>
+      </>
+    ) : (
+      <Text style={styles.buttonText}>Upload</Text>
+    )}
+  </View>
+</TouchableOpacity>
               </View>
             )}
           </LinearGradient>
@@ -439,16 +630,26 @@ const styles = StyleSheet.create({
   },
   uploadButton: {
     alignSelf: 'center',
-    width: '100%',
-    height: 54,
-    borderRadius: 14,
-    backgroundColor: '#4ECDC4',
-    marginTop: 10, // Space from the content
+  width: '100%',
+  height: 54,
+  borderRadius: 14,
+  backgroundColor: '#4ECDC4',
+  marginTop: 10,
+  justifyContent: 'center',
+  alignItems: 'center',
+
   },
   buttonText: {
     fontSize: 16,
     fontWeight: '600',
-  }
+    color:'white',
+  },
+  buttonContainer: {
+    flexDirection: 'row', // Changed to row
+  alignItems: 'center',
+  justifyContent: 'center',
+  gap: 8, // Space between indicator and text
+  },
 });
 
 export default MainScreen;
