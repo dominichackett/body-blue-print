@@ -144,9 +144,6 @@ We welcome contributions! Please fork the repository and create a pull request w
 ## 📄 License
 This project is licensed under the [MIT License](LICENSE).
 
-## 📧 Contact
-For questions or support, please contact [your-email@example.com](mailto:your-email@example.com)
 
----
 
 *Body Blueprint - Your AI-powered path to better health*
