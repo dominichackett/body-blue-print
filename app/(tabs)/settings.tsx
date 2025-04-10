@@ -5,7 +5,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { useAuth } from '@/providers/AuthProvider';
 import {  Stack } from 'expo-router';
 import { ethers } from 'ethers';
-import {DAO_ADDRESS,DAO_ABI} from '@env'
+import {DAO_ADDRESS,DAO_ABI,RELAY_SERVER} from '@env'
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
 
@@ -23,7 +23,7 @@ async function uploadToDAO(bucketName,filename, jsonData, message, signature) {
     const jsonString = JSON.stringify(jsonData);
     
     // The URL includes the bucketName as a path parameter
-    const url = `http://192.168.0.12:3001/api/buckets/${bucketName}/upload`;
+    const url = `${RELAY_SERVER}/api/buckets/${bucketName}/upload`;
     
     // Set query parameters for message and signature
     const urlWithParams = `${url}?message=${encodeURIComponent(message)}&signature=${encodeURIComponent(signature)}`;

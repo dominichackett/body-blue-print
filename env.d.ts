@@ -10,5 +10,6 @@ declare module '@env' {
     export const ANURA_MODEL_ID:string;
     export const DAO_ADDRESS:string;
     export const DAO_ABI:string;
+    export const RELAY_SERVER:string;
     // Add other environment variables you're using
   }
