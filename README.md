@@ -117,27 +117,27 @@ The Node.js server for Filecoin/Akave integration is located in the `/server` di
 ### Mobile App Screens
 <div style="display: flex; flex-wrap: wrap; gap: 10px; margin-bottom: 20px;">
   <img src="https://via.placeholder.com/150x300?text=Login+Screen" width="150" alt="Login Screen">
-  <img src="https://via.placeholder.com/150x300?text=Dashboard" width="150" alt="Dashboard">
-  <img src="https://via.placeholder.com/150x300?text=Macro+Calculator" width="150" alt="Macro Calculator">
-  <img src="https://via.placeholder.com/150x300?text=Workout+Plans" width="150" alt="Workout Plans">
-  <img src="https://via.placeholder.com/150x300?text=Meal+Planner" width="150" alt="Meal Planner">
-  <img src="https://via.placeholder.com/150x300?text=Food+Scanner" width="150" alt="Food Scanner">
+  <img src="https://github.com/dominichackett/body-blue-print/blob/master/images/home.jpeg" width="150" alt="Dashboard">
+  <img src="https://github.com/dominichackett/body-blue-print/blob/master/images/macros.jpeg" width="150" alt="Macro Calculator">
+  <img src="https://github.com/dominichackett/body-blue-print/blob/master/images/profile.jpeg" width="150" alt="Profile">
+  <img src="https://github.com/dominichackett/body-blue-print/blob/master/images/bmi.jpeg" width="150" alt="BMI">
+
+
+  <img src="https://github.com/dominichackett/body-blue-print/blob/master/images/workout.jpeg" width="150" alt="Workout Plans">
+   
 </div>
 
 <div style="display: flex; flex-wrap: wrap; gap: 10px; margin-bottom: 20px;">
-  <img src="https://via.placeholder.com/150x300?text=Progress+Tracking" width="150" alt="Progress Tracking">
-  <img src="https://via.placeholder.com/150x300?text=DAO+Participation" width="150" alt="DAO Participation">
-  <img src="https://via.placeholder.com/150x300?text=Settings" width="150" alt="Settings">
-  <img src="https://via.placeholder.com/150x300?text=Profile" width="150" alt="Profile">
-  <img src="https://via.placeholder.com/150x300?text=Notifications" width="150" alt="Notifications">
-  <img src="https://via.placeholder.com/150x300?text=Dark+Mode" width="150" alt="Dark Mode">
+ <img src="https://github.com/dominichackett/body-blue-print/blob/master/images/savedworkouts.jpeg" width="150" alt="Workout Plans">
+
+  <img src="https://github.com/dominichackett/body-blue-print/blob/master/images/mealplangenrator.jpeg" width="150" alt="Meal Planner">
+   <img src="https://github.com/dominichackett/body-blue-print/blob/master/images/savedmealplans.jpeg" width="150" alt="Meal Plans">
+  <img src="https://github.com/dominichackett/body-blue-print/blob/master/images/foodhistory.jpeg" width="150" alt="Food Scanner">
+  <img src="https://github.com/dominichackett/body-blue-print/blob/master/images/dao.jpeg" width="150" alt="DAO">  
+  <img src="https://github.com/dominichackett/body-blue-print/blob/master/images/upload.jpeg" width="150" alt="Data Uploads"> 
 </div>
 
-### Web Interface Screens
-<div style="display: flex; flex-wrap: wrap; gap: 10px;">
-  <img src="https://via.placeholder.com/300x150?text=DAO+Dashboard" width="300" alt="DAO Dashboard">
-  <img src="https://via.placeholder.com/300x150?text=Data+Marketplace" width="300" alt="Data Marketplace">
-</div>
+
 
 ## 🤝 Contributing
 We welcome contributions! Please fork the repository and create a pull request with your changes.
