@@ -20,43 +20,8 @@ import { analyzeMealImage } from '../../utils/lilypad';
 The complete meal planning workflow:
 
 [`app/(tabs)/meals.tsx`](https://github.com/dominichackett/body-blue-print/blob/master/app/(tabs)/meals.tsx#L124-L246)
-```typescript
-const generateMealPlan = async () => {
-  try {
-    const plan = await callLilypadMealPlanner({
-      userGoals: currentGoals,
-      dietaryRestrictions,
-      preferredFoods
-    });
-    setGeneratedPlan(plan);
-  } catch (error) {
-    showError("Failed to generate decentralized meal plan");
-  }
-};
-```
 
 ### 3. Core Lilypad Service
 The complete Lilypad interaction layer:
 
 [`utils/lilypad.tsx`](https://github.com/dominichackett/body-blue-print/blob/master/utils/lilypad.tsx#L1-L122)
-```typescript
-export const callLilypadMealPlanner = async (inputs: MealPlanInputs) => {
-  const jobSpec = {
-    apiVersion: "bacalhau/v1",
-    spec: {
-      engine: "docker",
-      inputs: [
-        {
-          storageSource: "ipfs",
-          cid: MEAL_PLANNER_MODEL_CID,
-          path: "/inputs"
-        }
-      ],
-      // ... full job specification
-    }
-  };
-
-  const { jobId, resultsCid } = await lilypad.submitJob(jobSpec);
-  return await pollForJobCompletion(jobId, resultsCid);
-};
-```
