@@ -206,7 +206,7 @@ const ExerciseAIScreen = () => {
   };
 
   // Generate exercise recommendations with Gemini API
-  const generateExercisesWithGemini = async () => {
+  const generateExercisesWithLilyPad = async () => {
     setLoading(true);
     setAiThinking(true);
     setError(null);
@@ -331,7 +331,7 @@ const ExerciseAIScreen = () => {
   
   // Load exercises when the component mounts
   useEffect(() => {
-    generateExercisesWithGemini();
+    generateExercisesWithLilyPad();
   }, [bodyPart, exerciseType]);
   
   // Render an individual exercise card
@@ -453,7 +453,7 @@ const ExerciseAIScreen = () => {
               </Text>
               <TouchableOpacity 
                 style={styles.retryButton}
-                onPress={generateExercisesWithGemini}
+                onPress={generateExercisesWithLilyPad}
               >
                 <Text style={styles.retryButtonText}>Retry</Text>
               </TouchableOpacity>
@@ -470,7 +470,7 @@ const ExerciseAIScreen = () => {
               {!loading && !error && (
                 <TouchableOpacity 
                   style={styles.retryButton}
-                  onPress={generateExercisesWithGemini}
+                  onPress={generateExercisesWithLilyPad}
                 >
                   <Text style={styles.retryButtonText}>Try Again</Text>
                 </TouchableOpacity>
