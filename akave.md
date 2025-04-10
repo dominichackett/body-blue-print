@@ -9,5 +9,6 @@ Our mobile app leverages Akave for:
 
 ## Key Integration Points
 ### 1. Upload Data
+https://github.com/dominichackett/body-blue-print/blob/master/app/(tabs)/settings.tsx#L20-L56
 
 https://github.com/dominichackett/body-blue-print/blob/master/app/(tabs)/settings.tsx#L186-L248
