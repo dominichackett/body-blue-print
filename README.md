@@ -21,6 +21,40 @@ Body Blueprint was created for the **AI Blueprints with Filecoin Hackathon**. It
 - **DAO Dashboard**: Participate in community governance
 - **Data Marketplace**: Access shared fitness data for research and ML projects
 
+## 🌐 Related Repositories
+
+Body Blueprint is composed of multiple interconnected systems:
+
+1. **DAO Frontend** (Next.js)  
+   [https://github.com/dominichackett/bodyblueprint-dao-frontend](https://github.com/dominichackett/bodyblueprint-dao-frontend)  
+   *Web interface for DAO participation and data marketplace*
+
+2. **Akave Server** (Node.js)  
+   [https://github.com/dominichackett/akaveserver](https://github.com/dominichackett/akaveserver)  
+   *Backend service for Filecoin data storage via Akave*
+
+3. **Mobile App** (React Native/Expo)  
+   *Current repository*  
+   *User-facing fitness application with AI features*
+
+## 🏆 Bounty Integrations
+
+### 1. Akave Decentralized Storage
+Our Node.js server ([akaveserver](https://github.com/dominichackett/akaveserver)) handles all Filecoin storage operations via Akave's API, featuring:
+- End-to-end encrypted fitness data storage
+- Content addressing with IPFS CIDs
+- Automatic backup scheduling
+
+[View Akave Integration Details](akave.md)
+
+### 2. Lilypad Inference
+Integrated directly in the mobile app for:
+- Private meal analysis without centralized servers
+- Verifiable workout generation
+- On-chain proof of all AI operations
+
+[View Lilypad Integration Details](lilypad.md)
+
 ## 🚀 Getting Started
 
 ### Prerequisites
@@ -76,8 +110,7 @@ The Node.js server for Filecoin/Akave integration is located in the `/server` di
 - **Backend**: Node.js
 - **Web Interface**: Next.js
 - **Decentralized Storage**: Filecoin via Akave
-- **AI Services**: (Specify if using OpenAI, HuggingFace, etc.)
-- **Database**: (Specify if using Firebase, MongoDB, etc.)
+- **AI Services**: (llam3 via Lilypad (Meal Plans,Exercises), Gemini 2.5 Pro Google)
 
 ## 📸 Screenshots
 
