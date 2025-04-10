@@ -14,5 +14,9 @@ https://github.com/dominichackett/body-blue-print/blob/2f21179c211ece4f1d5fff07d
 ### 2. Meal Plan Generation
 https://github.com/dominichackett/body-blue-print/blob/2f21179c211ece4f1d5fff07def8b2e507734b10/app/(tabs)/meals.tsx#L124-L246
 
-### 3. Core Lilypad Service
+### 3. Exercise Generation
+
+https://github.com/dominichackett/body-blue-print/blob/2f21179c211ece4f1d5fff07def8b2e507734b10/app/workout/exercise.tsx#L209-L271
+
+### 4. Core Lilypad Service
 https://github.com/dominichackett/body-blue-print/blob/2f21179c211ece4f1d5fff07def8b2e507734b10/utils/lilypad.tsx#L1-L122
