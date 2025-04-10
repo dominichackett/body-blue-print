@@ -141,9 +141,16 @@ The Node.js server for Filecoin/Akave integration is located in the `/server` di
 ## 🤝 Contributing
 We welcome contributions! Please fork the repository and create a pull request with your changes.
 
-## 📄 License
-This project is licensed under the [MIT License](LICENSE).
+## License
 
+This software is licensed under the Elastic License 2.0. 
+
+**Important**: This is NOT an open source license. Usage is subject to the terms of the Elastic License 2.0, which prohibits:
+- Use of the software to provide the software to third parties as a hosted or managed service
+- Use of the software to offer similar features/functionality to the software on a competing product
+- Distribution of the software outside your organization
+
+For the full license text, see the [LICENSE](LICENSE) file in this repository.
 
 
 *Body Blueprint - Your AI-powered path to better health*
