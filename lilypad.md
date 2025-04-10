@@ -1,6 +1,3 @@
-Here's the updated `LILYPAD_INTEGRATION.md` with direct code references to your implementation:
-
-```markdown
 # Lilypad Inference Integration
 
 ## Implementation Overview
