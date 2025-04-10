@@ -116,7 +116,6 @@ The Node.js server for Filecoin/Akave integration is located in the `/server` di
 
 ### Mobile App Screens
 <div style="display: flex; flex-wrap: wrap; gap: 10px; margin-bottom: 20px;">
-  <img src="https://via.placeholder.com/150x300?text=Login+Screen" width="150" alt="Login Screen">
   <img src="https://github.com/dominichackett/body-blue-print/blob/master/images/home.jpeg" width="150" alt="Dashboard">
   <img src="https://github.com/dominichackett/body-blue-print/blob/master/images/macros.jpeg" width="150" alt="Macro Calculator">
   <img src="https://github.com/dominichackett/body-blue-print/blob/master/images/profile.jpeg" width="150" alt="Profile">
@@ -130,10 +129,10 @@ The Node.js server for Filecoin/Akave integration is located in the `/server` di
 <div style="display: flex; flex-wrap: wrap; gap: 10px; margin-bottom: 20px;">
  <img src="https://github.com/dominichackett/body-blue-print/blob/master/images/savedworkouts.jpeg" width="150" alt="Workout Plans">
 
-  <img src="https://github.com/dominichackett/body-blue-print/blob/master/images/mealplangenrator.jpeg" width="150" alt="Meal Planner">
+  <img src="https://github.com/dominichackett/body-blue-print/blob/master/images/mealplangenerator.jpeg" width="150" alt="Meal Planner">
    <img src="https://github.com/dominichackett/body-blue-print/blob/master/images/savedmealplans.jpeg" width="150" alt="Meal Plans">
   <img src="https://github.com/dominichackett/body-blue-print/blob/master/images/foodhistory.jpeg" width="150" alt="Food Scanner">
-  <img src="https://github.com/dominichackett/body-blue-print/blob/master/images/dao.jpeg" width="150" alt="DAO">  
+  <img src="https://github.com/dominichackett/body-blue-print/blob/master/images/Dao.jpeg" width="150" alt="DAO">  
   <img src="https://github.com/dominichackett/body-blue-print/blob/master/images/upload.jpeg" width="150" alt="Data Uploads"> 
 </div>
 
