@@ -13,6 +13,15 @@ https://github.com/dominichackett/body-blue-print/blob/2f21179c211ece4f1d5fff07d
 
 https://github.com/dominichackett/body-blue-print/blob/2f21179c211ece4f1d5fff07def8b2e507734b10/app/(tabs)/settings.tsx#L186-L248
 
+## Smart Contracts to Manage DAO Deployed on AKAVE Testnet
+###  DAO Governance Token
+https://github.com/dominichackett/body-blue-print/blob/2f21179c211ece4f1d5fff07def8b2e507734b10/contracts/contracts/DaoToken.sol#L1-L30
+
+###  DAO Governance Contract
+https://github.com/dominichackett/body-blue-print/blob/2f21179c211ece4f1d5fff07def8b2e507734b10/contracts/contracts/HealthDAOGovernance.sol#L1-L131
+
+###  DAO Storage Access Control
+https://github.com/dominichackett/body-blue-print/blob/2f21179c211ece4f1d5fff07def8b2e507734b10/contracts/contracts/HealthDAOStorage1.sol#L1-L345
 
 ## Relay Server to AKAVE Link
 https://github.com/dominichackett/akaveserver/blob/main/server.js
